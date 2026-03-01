@@ -1,21 +1,11 @@
 import streamlit as st
 import requests
 import datetime
-import PyPDF2
 from docx import Document
 from io import BytesIO
 
 # 1. Хуудасны тохиргоо
 st.set_page_config(page_title="Medle AI - Ухаалаг Багш", layout="wide", page_icon="🎓")
-
-# CSS - Орчин үеийн загвар
-st.markdown("""
-    <style>
-    .stMetric { background-color: #ffffff; padding: 20px; border-radius: 15px; border-left: 5px solid #007bff; }
-    .stTabs [data-baseweb="tab-list"] { gap: 24px; }
-    .stTabs [data-baseweb="tab"] { height: 50px; white-space: pre-wrap; background-color: #f0f2f6; border-radius: 10px; padding: 10px; }
-    </style>
-    """, unsafe_allow_html=True)
 
 # 2. Статистик (Session State)
 if 'plan_count' not in st.session_state: st.session_state.plan_count = 0
@@ -38,76 +28,74 @@ def login():
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
-    st.title("🎓 Medle AI - Багшийн Нэгдсэн Систем")
-    c1, c2 = st.columns(2)
-    c1.metric("Нийт боловсруулсан материал", st.session_state.plan_count)
-    c2.metric("Систем дэх багш нар", len(st.session_state.teacher_emails))
+    st.title("🎓 Medle AI - Багшийн Систем")
     login()
     st.stop()
 
 # 4. Үндсэн цэс
 st.sidebar.success(f"👤 {st.session_state.user_email}")
 menu = st.sidebar.selectbox("Цэс сонгох", 
-    ["📖 Сурах бичгээс бэлтгэх", "📝 Ээлжит хичээл (Шинэ)", "📊 ESIS", "🗺️ EduMap", "🌐 Medle.mn"])
+    ["📖 Сурах бичгийн хуудаснаас бэлтгэх", "📝 Ээлжит хичээл төлөвлөх", "📊 ESIS", "🌐 Medle.mn", "🗺️ EduMap"])
 
-if st.sidebar.button("Гарах"):
-    st.session_state.logged_in = False
-    st.rerun()
-
-# 5. ШИНЭ ФУНКЦ: СУРАХ БИЧГЭЭС БОЛОВСРУУЛАХ
-if menu == "📖 Сурах бичгээс бэлтгэх":
-    st.title("📖 Сурах бичгээс материал бэлтгэх")
-    st.info("Сурах бичгийнхээ PDF файлыг оруулснаар AI түүн дээр үндэслэн төлөвлөгөө болон сорил бэлдэнэ.")
+# 5. ШИНЭ ФУНКЦ: СУРАХ БИЧГИЙН ХУУДАС ЗААЖ ӨГӨХ
+if menu == "📖 Сурах бичгийн хуудаснаас бэлтгэх":
+    st.title("📖 Сурах бичгийн агуулгаар боловсруулах")
     
-    uploaded_file = st.file_uploader("Сурах бичгийн хуудсыг PDF хэлбэрээр оруулна уу", type="pdf")
+    col1, col2 = st.columns([1, 1])
     
-    if uploaded_file is not None:
-        # PDF-ээс текст унших
-        reader = PyPDF2.PdfReader(uploaded_file)
-        full_text = ""
-        for page in reader.pages:
-            full_text += page.extract_text()
+    with col1:
+        st.subheader("📚 Сурах бичгийн мэдээлэл")
+        book_link = st.text_input("Econtent сурах бичгийн линк:", "https://econtent.edu.mn/book/12bek/1")
+        page_num = st.number_input("Ашиглах хуудасны дугаар:", min_value=1, value=1)
         
-        st.success("✅ Сурах бичгийн текстийг амжилттай уншлаа.")
+        # Сэдвээ гараар эсвэл AI-аар тодорхойлох
+        topic_context = st.text_area("Тухайн хуудасны гол агуулга эсвэл сэдэв (Заавал биш):", 
+                                     placeholder="Жишээ: 12-р ангийн Мэдээлэл зүй, Өгөгдлийн сангийн бүтэц")
         
-        tab1, tab2 = st.tabs(["📋 Ээлжит хичээл бэлтгэх", "⏱️ 5 минутын сорил бэлдэх"])
+        task_type = st.radio("Юу бэлтгэх вэ?", ["Ээлжит хичээлийн төлөвлөгөө", "5 минутын сорил"])
         
-        with tab1:
-            if st.button("✨ Төлөвлөгөө үүсгэх"):
-                with st.spinner("AI текстийг шинжилж байна..."):
-                    prompt = f"Дараах сурах бичгийн эх бичвэр дээр үндэслэн ээлжит хичээлийн төлөвлөгөөг (Эхлэл, Өрнөл, Төгсгөл) боловсруулж өг: {full_text[:2000]}"
-                    url = "https://api.groq.com/openai/v1/chat/completions"
-                    headers = {"Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}"}
-                    res = requests.post(url, headers=headers, json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": prompt}]})
-                    if res.status_code == 200:
-                        st.session_state.plan_count += 1
-                        st.markdown(res.json()['choices'][0]['message']['content'])
-        
-        with tab2:
-            num_questions = st.slider("Асуултын тоо", 3, 10, 5)
-            if st.button("⏱️ Сорил бэлдэх"):
-                with st.spinner("5 минутын сорил бэлтгэж байна..."):
-                    prompt = f"Дараах эх бичвэр дээр үндэслэн сурагчдын мэдлэгийг шалгах {num_questions} асуулт бүхий '5 минутын сорил' бэлд. Асуулт бүр 4 сонголттой, зөв хариулттай байх ёстой: {full_text[:2000]}"
-                    url = "https://api.groq.com/openai/v1/chat/completions"
-                    headers = {"Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}"}
-                    res = requests.post(url, headers=headers, json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": prompt}]})
-                    if res.status_code == 200:
-                        st.session_state.plan_count += 1
-                        st.session_state.quiz_result = res.json()['choices'][0]['message']['content']
-                        st.markdown(st.session_state.quiz_result)
-                        
-                        # Word татах
-                        doc = Document()
-                        doc.add_heading('5 МИНУТЫН СОРИЛ', 0)
-                        doc.add_paragraph(st.session_state.quiz_result)
-                        bio = BytesIO()
-                        doc.save(bio)
-                        st.download_button("📥 Сорилыг Word-оор татах", bio.getvalue(), "Quiz.docx")
+        if st.button("✨ Боловсруулж эхлэх"):
+            with st.spinner("AI сурах бичгийн агуулгыг шинжилж байна..."):
+                # Groq AI-д өгөх заавар
+                prompt = f"""
+                Econtent.edu.mn дээрх '{book_link}' сурах бичгийн {page_num}-р хуудсанд байх агуулгыг ашиглан {task_type} бэлтгэ.
+                Хэрэв тухайн хуудас нь {topic_context} сэдэвтэй бол үүнийг анхаарна уу.
+                
+                Хичээлийн төлөвлөгөө бол: Эхлэл, Өрнөл, Төгсгөл хүснэгт хэлбэрээр.
+                Сорил бол: 5 асуулттай, 4 сонголттой, зөв хариултын хамт.
+                """
+                
+                url = "https://api.groq.com/openai/v1/chat/completions"
+                headers = {"Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}"}
+                res = requests.post(url, headers=headers, json={
+                    "model": "llama-3.3-70b-versatile",
+                    "messages": [{"role": "user", "content": prompt}]
+                })
+                
+                if res.status_code == 200:
+                    st.session_state.plan_count += 1
+                    st.session_state.current_result = res.json()['choices'][0]['message']['content']
+                else:
+                    st.error("Алдаа гарлаа. API Key эсвэл холболтоо шалгана уу.")
 
-# Бусад цэсүүд (Өмнөх кодын дагуу)
-elif menu == "📝 Ээлжит хичээл (Шинэ)":
-    st.title("📝 Ээлжит хичээлийн төлөвлөлт")
-    # ... (Өмнөх төлөвлөгөөний код энд орно)
+    with col2:
+        st.subheader("🌐 Econtent Харагдац")
+        # Сурах бичгийг хажууд нь нээж харуулах
+        st.components.v1.iframe(book_link, height=600, scrolling=True)
 
+    if 'current_result' in st.session_state:
+        st.divider()
+        st.subheader("📝 AI-аас бэлтгэсэн материал")
+        st.markdown(st.session_state.current_result)
+        
+        # Word татах
+        doc = Document()
+        doc.add_heading(f"Сурах бичгийн {page_num}-р хуудаснаас бэлтгэсэн материал", 0)
+        doc.add_paragraph(st.session_state.current_result)
+        bio = BytesIO()
+        doc.save(bio)
+        st.download_button("📥 Word файлаар татах", bio.getvalue(), "Prepared_Material.docx")
+
+# Бусад цэсүүд хэвээрээ...
 elif menu == "📊 ESIS":
     st.components.v1.iframe("https://bagsh.esis.edu.mn/", height=800)
