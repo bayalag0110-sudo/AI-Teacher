@@ -2,110 +2,72 @@ import streamlit as st
 import requests
 import datetime
 from docx import Document
-from docx.enum.text import WD_ALIGN_PARAGRAPH
 from io import BytesIO
 
 # 1. Хуудасны тохиргоо
-st.set_page_config(page_title="Medle AI - Багшийн Төв", layout="wide", page_icon="🎓")
+st.set_page_config(page_title="Medle AI - Ухаалаг Багш", layout="wide", page_icon="🎓")
 
-# CSS - Орчин үеийн загвар ба Iframe тохиргоо
+# CSS тохиргоо
 st.markdown("""
     <style>
     .stTabs [data-baseweb="tab-list"] { gap: 10px; }
-    .stTabs [data-baseweb="tab"] { background-color: #f0f2f6; border-radius: 5px; padding: 10px; }
     iframe { border-radius: 10px; border: 1px solid #ddd; width: 100%; }
-    .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; border-left: 5px solid #007bff; }
+    .history-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
+    .history-item:hover { background-color: #f0f2f6; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. Түүх болон Статистик хадгалах
+# 2. Session State - Түүх болон одоогийн харагдацыг удирдах
 if 'history' not in st.session_state: st.session_state.history = []
-if 'teacher_emails' not in st.session_state: st.session_state.teacher_emails = set()
+if 'current_view' not in st.session_state: st.session_state.current_view = None
 
 # AI-д өгөх СИСТЕМ ЗААВАРЧИЛГАА (Таны Excel загварын дагуу)
 SYSTEM_INSTRUCTION = """
 Чи бол Монгол улсын ерөнхий боловсролын сургуулийн заах аргач багш. 
-Чиний даалгавар бол хэрэглэгчийн өгсөн сэдэв болон сурах бичгийн агуулгын дагуу 'ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨЛТ' боловсруулах юм.
+Чиний даалгавар бол хэрэглэгчийн өгсөн сэдэв болон сурах бичгийн агуулгын дагуу дараах 3 зүйлийг боловсруулах юм:
 
-[МӨРДӨХ СТАНДАРТ]:
-- 'Хичээлийн зорилго'-ыг Блүүмийн таксономийн дагуу тодорхойлно.
-- Хичээлийн үе шат бүрийг (Эхлэл, Өрнөл, Төгсгөл) маш тодорхой, сурагч төвтэй байхаар бичнэ.
-- 'Суралцахуйн үйл ажиллагаа' хэсэгт багш юу хийх, сурагч юу хийхийг заавал тусгана.
-- 'Багшийн дэмжлэг' хэсэгт чиглүүлэх асуултууд болон хүүхэд бүртэй хэрхэн ажиллахыг бичнэ.
-- Төгсгөлд нь 'Ялгаатай сурагчидтай ажиллах аргачлал' болон 'Багшийн дүгнэлт' хэсгийг заавал оруулна.
+1. ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨЛТ: (Excel загварын дагуу хүснэгтээр)
+2. 3-5 МИНУТЫН СОРИЛ: (Хичээлийн агуулгыг шалгах 3-5 асуулт, хариултын хамт)
+3. ЯЛГААТАЙ СУРАГЧИДТАЙ АЖИЛЛАХ ЗААВАР: (Удаан сурдаг, дундаж, болон авьяаслаг сурагчдад зориулсан тусгай заавар)
 
 [ХҮСНЭГТИЙН БҮТЭЦ]:
 Заавал Markdown хүснэгт ашиглана:
 | Хичээлийн үе шат | Хугацаа | Суралцахуйн үйл ажиллагаа | Багшийн дэмжлэг | Хэрэглэгдэхүүн |
-| :--- | :--- | :--- | :--- | :--- |
 """
 
-# 3. Нэвтрэх хэсэг
-def login():
-    st.sidebar.title("🔐 Багшийн нэвтрэх")
-    email = st.sidebar.text_input("Эмайл (@medle.mn)")
-    password = st.sidebar.text_input("Нууц үг", type="password")
-    if st.sidebar.button("Системд нэвтрэх"):
-        if email.strip().lower().endswith("@medle.mn") and password:
-            st.session_state.logged_in = True
-            st.session_state.user_email = email.strip().lower()
-            st.session_state.teacher_emails.add(email.strip().lower())
-            st.rerun()
-        else:
-            st.sidebar.error("❌ Зөвхөн @medle.mn хаяг!")
-
-if 'logged_in' not in st.session_state: st.session_state.logged_in = False
-
-if not st.session_state.logged_in:
-    st.title("🎓 Medle AI - Ухаалаг Багшийн Систем")
-    c1, c2 = st.columns(2)
-    c1.metric("Нийт боловсруулсан", len(st.session_state.history))
-    c2.metric("Багш нарын тоо", len(st.session_state.teacher_emails))
-    login()
-    st.stop()
-
-# 4. Sidebar - Түүх харуулах
-st.sidebar.success(f"👤 {st.session_state.user_email}")
-with st.sidebar.expander("🕒 Төлөвлөгөөний түүх"):
-    if not st.session_state.history:
-        st.write("Түүх байхгүй.")
-    else:
-        for item in st.session_state.history:
-            st.caption(f"{item['date']} - {item['topic']}")
-
-if st.sidebar.button("Гарах"):
-    st.session_state.logged_in = False
+# 3. Sidebar - Түүхийг удирдах
+st.sidebar.title("🕒 Төлөвлөгөөний түүх")
+if st.sidebar.button("➕ Шинэ төлөвлөгөө эхлүүлэх"):
+    st.session_state.current_view = None
     st.rerun()
 
-# 5. Үндсэн табууд (Бүх сайтууд ил харагдана)
-tab_main, tab_esis, tab_edumap, tab_bagsh, tab_medle = st.tabs([
-    "📝 Хичээл төлөвлөх & Econtent", 
-    "📊 ESIS", "🗺️ EduMap", "👨‍🏫 Багшийн хөгжил", "💻 Medle.mn"
-])
+st.sidebar.markdown("---")
+for idx, item in enumerate(st.session_state.history):
+    if st.sidebar.button(f"📄 {item['topic']} ({item['date']})", key=f"hist_{idx}"):
+        st.session_state.current_view = item
 
-# --- TAB 1: ECONTENT БА AI ТӨЛӨВЛӨГӨӨ ---
+# 4. Үндсэн хэсэг
+st.title("🎓 Ухаалаг Багшийн Туслах")
+
+tab_main, tab_portals = st.tabs(["📝 Хичээл боловсруулах", "🌐 Сургалтын порталууд"])
+
 with tab_main:
-    col_book, col_plan = st.columns([1.2, 1])
-    
-    with col_book:
-        st.subheader("📚 Сурах бичиг")
-        book_url = st.text_input("Econtent линк:", "https://econtent.edu.mn/book/12bek/1")
-        st.components.v1.iframe(book_url, height=700, scrolling=True)
-    
-    with col_plan:
-        st.subheader("⚙️ Шинэ төлөвлөгөө")
+    col_left, col_right = st.columns([1, 1.2])
+
+    with col_left:
+        st.subheader("⚙️ Тохиргоо")
         sub = st.text_input("Хичээл", "Мэдээлэл зүй")
         grd = st.selectbox("Анги", [f"{i}-р анги" for i in range(1, 13)])
-        tpc = st.text_input("Сэдэв (Номын агуулгын дагуу)")
-        pages = st.text_input("Ашиглах хуудас (Жишээ: 45-48)")
+        tpc = st.text_input("Хичээлийн сэдэв")
+        pages = st.text_input("Сурах бичгийн хуудас (Econtent)")
         
-        if st.button("✨ Төлөвлөгөө боловсруулах"):
-            if tpc and pages:
-                with st.spinner("AI стандартын дагуу боловсруулж байна..."):
+        if st.button("✨ Төлөвлөгөө + Сорил боловсруулах"):
+            if tpc:
+                with st.spinner("AI боловсруулж байна..."):
                     url = "https://api.groq.com/openai/v1/chat/completions"
                     headers = {"Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}"}
                     
-                    user_prompt = f"Хичээл: {sub}, Анги: {grd}, Сэдэв: {tpc}, Номын хуудас: {pages}. Сурах бичгийн энэ хуудасны агуулгын хүрээнд төлөвлөгөөг гарга."
+                    user_prompt = f"Хичээл: {sub}, Анги: {grd}, Сэдэв: {tpc}, Хуудас: {pages}. Төлөвлөгөө, сорил, зааварчилгааг гарга."
                     
                     payload = {
                         "model": "llama-3.3-70b-versatile",
@@ -119,30 +81,38 @@ with tab_main:
                     res = requests.post(url, headers=headers, json=payload)
                     if res.status_code == 200:
                         ans = res.json()['choices'][0]['message']['content']
-                        st.session_state.history.append({"date": str(datetime.date.today()), "topic": tpc, "content": ans})
-                        st.markdown(ans)
-                        
-                        # Word татах
-                        doc = Document()
-                        doc.add_heading('ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨЛТ', 0)
-                        doc.add_paragraph(ans)
-                        bio = BytesIO()
-                        doc.save(bio)
-                        st.download_button("📥 Word татах", bio.getvalue(), f"{tpc}.docx")
-                    else:
-                        st.error("AI холболтод алдаа гарлаа.")
-            else:
-                st.warning("Сэдэв болон хуудсаа оруулна уу.")
+                        new_item = {
+                            "date": datetime.datetime.now().strftime("%m/%d %H:%M"),
+                            "topic": tpc,
+                            "content": ans,
+                            "sub": sub,
+                            "grd": grd
+                        }
+                        st.session_state.history.append(new_item)
+                        st.session_state.current_view = new_item
+                        st.rerun()
 
-# --- БУСАД ПОРТАЛУУДЫН IFRAME ХЭСЭГ ---
-with tab_esis:
-    st.components.v1.iframe("https://bagsh.esis.edu.mn/", height=800, scrolling=True)
+    with col_right:
+        if st.session_state.current_view:
+            item = st.session_state.current_view
+            st.subheader(f"📄 Харагдац: {item['topic']}")
+            st.info(f"Анги: {item['grd']} | Хичээл: {item['sub']}")
+            
+            # Төлөвлөгөөг харуулах
+            st.markdown(item['content'])
+            
+            # Word файл татах
+            doc = Document()
+            doc.add_heading(f"{item['topic']} - Төлөвлөгөө", 0)
+            doc.add_paragraph(item['content'])
+            bio = BytesIO()
+            doc.save(bio)
+            st.download_button("📥 Word хэлбэрээр татах", bio.getvalue(), f"{item['topic']}.docx")
+        else:
+            st.write("👈 Зүүн талд мэдээллээ оруулаад 'Боловсруулах' товчийг дарна уу.")
 
-with tab_edumap:
-    st.components.v1.iframe("https://edumap.mn/", height=800, scrolling=True)
-
-with tab_bagsh:
-    st.components.v1.iframe("https://bagsh.edu.mn/", height=800, scrolling=True)
-
-with tab_medle:
-    st.components.v1.iframe("https://medle.mn/", height=800, scrolling=True)
+with tab_portals:
+    p_tab1, p_tab2, p_tab3 = st.tabs(["Econtent", "ESIS", "Medle"])
+    with p_tab1: st.components.v1.iframe("https://econtent.edu.mn/book", height=700)
+    with p_tab2: st.components.v1.iframe("https://bagsh.esis.edu.mn/", height=700)
+    with p_tab3: st.components.v1.iframe("https://medle.mn/", height=700)
