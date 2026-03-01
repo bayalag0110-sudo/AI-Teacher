@@ -1,33 +1,26 @@
 import streamlit as st
 import google.generativeai as genai
 from docx import Document
-from io import BytesI
+from io import BytesIO
 
-# Энэ хэсгийг app.py-ийн эхэнд бичнэ
-import streamlit as st
-import google.generativeai as genai
-
-# API Key-ийг Secrets-ээс унших (Вэб дээр ажиллахад зориулагдсан)
+# 1. Gemini AI Тохиргоо (Secrets-ээс унших)
+# Streamlit Cloud-ийн Settings -> Secrets хэсэгт GOOGLE_API_KEY-ээ хийнэ.
 if "GOOGLE_API_KEY" in st.secrets:
-    api_key = st.secrets["GOOGLE_API_KEY"]
+    api_key = st.secrets["AIzaSyD-qC9TwkdOxl38icULTJ4BHzVTMNoPvTA"]
 else:
-    api_key = "ТАНЫ_КОДОН_ДЭЭРХ_KEY" # Локал туршилтад зориулж үлдээж болно
+    # Хэрэв локал дээр ажиллуулж байгаа бол доорх хашилтан дотор Key-ээ хийж болно
+    api_key = "AIzaSyD-qC9TwkdOxl38icULTJ4BHzVTMNoPvTA"
 
-genai.configure(api_key=api_key)
-        
-        # Python 3.14 дээр 404 алдаанаас сэргийлэх дараалал
-        # Эхлээд Flash, болохгүй бол Pro-г туршина
-        models_to_try = [
-            'gemini-1.5-flash-latest', 
-            'gemini-1.5-flash', 
-            'gemini-pro'
-        ]
-        
+def setup_model():
+    try:
+        genai.configure(api_key=api_key)
+        # 404 алдаанаас сэргийлж хэд хэдэн хувилбарыг турших
+        models_to_try = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
         for model_name in models_to_try:
             try:
                 m = genai.GenerativeModel(model_name)
-                # Жижиг тест хийж холболтыг шалгах
-                m.generate_content("ping", generation_config={"max_output_tokens": 1})
+                # Холболтыг шалгах тест
+                m.generate_content("test", generation_config={"max_output_tokens": 1})
                 return m
             except:
                 continue
@@ -36,30 +29,20 @@ genai.configure(api_key=api_key)
         st.error(f"Тохиргооны алдаа: {e}")
         return None
 
-# Моделийг ачаалах
 model = setup_model()
 
-# 2. Дизайн болон CSS
-st.set_page_config(page_title="Ухаалаг Багш", page_icon="🎓", layout="centered")
+# 2. Вэб дизайны тохиргоо
+st.set_page_config(page_title="Ухаалаг Багшийн Туслах", page_icon="🎓")
 
 st.markdown("""
     <style>
-    .main { background-color: #f8f9fa; }
     .stButton>button {
         width: 100%;
         border-radius: 12px;
-        height: 3.5em;
-        background-color: #00796b;
+        background-color: #008080;
         color: white;
+        height: 3.5em;
         font-weight: bold;
-        border: none;
-    }
-    .lesson-card {
-        background-color: white;
-        padding: 25px;
-        border-radius: 15px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        margin-bottom: 20px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -68,11 +51,9 @@ st.markdown("""
 def create_word_file(text, subject, topic):
     doc = Document()
     doc.add_heading('ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨГӨӨ', 0)
-    doc.add_paragraph(f'Хичээл: {subject}')
-    doc.add_paragraph(f'Сэдэв: {topic}')
-    doc.add_heading('Төлөвлөгөөний дэлгэрэнгүй', level=1)
+    doc.add_paragraph(f'Хичээл: {subject}\nСэдэв: {topic}')
+    doc.add_heading('Төлөвлөгөө:', level=1)
     doc.add_paragraph(text)
-    
     bio = BytesIO()
     doc.save(bio)
     bio.seek(0)
@@ -80,50 +61,37 @@ def create_word_file(text, subject, topic):
 
 # 4. Программ
 st.title("🎓 Ухаалаг Багшийн Туслах")
-st.write(f"Орчин: Python 3.14.3 | Gemini AI")
+st.info("Хичээлийн төлөвлөгөө боловсруулах систем")
 
-st.markdown('<div class="lesson-card">', unsafe_allow_html=True)
 col1, col2 = st.columns(2)
 with col1:
-    subject = st.selectbox("📚 Хичээл", ["Математик", "Монгол хэл", "Биологи", "Физик", "Мэдээлэл технологи", "Хими", "Англи хэл", "Бусад"])
+    subject = st.selectbox("📚 Хичээл", ["Математик", "Монгол хэл", "Мэдээлэл технологи", "Биологи", "Физик", "Бусад"])
     grade = st.selectbox("🏫 Анги", [f"{i}-р анги" for i in range(1, 13)])
 with col2:
-    topic = st.text_input("🔍 Хичээлийн сэдэв", placeholder="Жишээ: Нарны систем")
-    duration = st.select_slider("⏱️ Хугацаа (мин)", options=[20, 35, 40, 45, 80, 90], value=40)
-st.markdown('</div>', unsafe_allow_html=True)
+    topic = st.text_input("🔍 Хичээлийн сэдэв", placeholder="Сэдвээ бичнэ үү...")
+    duration = st.slider("⏱️ Хугацаа (мин)", 20, 90, 40)
 
-# 5. AI Ажиллуулах
-if st.button("✨ Хичээл төлөвлөгөөг боловсруулах"):
+if st.button("✨ Төлөвлөгөө боловсруулах"):
     if not topic:
         st.warning("⚠️ Сэдвээ оруулна уу!")
     elif model is None:
-        st.error("❌ AI Модельтой холбогдож чадсангүй. API Key эсвэл бүс нутгийн хязгаарлалт байж магадгүй.")
+        st.error("❌ AI Модельтой холболт тогтоож чадсангүй. Secrets хэсэгт API Key-ээ зөв оруулсан эсэхээ шалгана уу.")
     else:
         try:
-            with st.status("🛠️ AI төлөвлөгөө гаргаж байна...", expanded=True) as status:
-                prompt = f"""
-                Чи бол Монголын ЕБС-ийн туршлагатай багш юм. 
-                Дараах мэдээллээр хичээлийн төлөвлөгөө гарга:
-                Хичээл: {subject}, Анги: {grade}, Сэдэв: {topic}, Хугацаа: {duration} минут.
-                Бүтэц: Зорилго, Суралцахуйн зорилт, Хичээлийн явц (Хүснэгтээр), Үнэлгээ.
-                Хариултыг Монгол хэлээр өг.
-                """
-                
+            with st.spinner("🛠️ AI ажиллаж байна..."):
+                prompt = f"{subject} хичээлийн {grade}-д орох '{topic}' сэдвээр {duration} минутын хичээлийн төлөвлөгөөг маш тодорхой гаргаж өг."
                 response = model.generate_content(prompt)
                 full_plan = response.text
-                status.update(label="✅ Төлөвлөгөө бэлэн боллоо!", state="complete", expanded=False)
-
-            st.markdown("### 📝 Боловсруулсан төлөвлөгөө")
-            st.markdown(full_plan)
-            
-            # Word татах
-            word_file = create_word_file(full_plan, subject, topic)
-            st.download_button(
-                label="💾 Word файлаар татах",
-                data=word_file,
-                file_name=f"{topic}_plan.docx",
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            )
+                
+                st.markdown("### 📝 Боловсруулсан төлөвлөгөө")
+                st.write(full_plan)
+                
+                word_file = create_word_file(full_plan, subject, topic)
+                st.download_button(
+                    label="💾 Word файлаар татах",
+                    data=word_file,
+                    file_name=f"{topic}_plan.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )
         except Exception as e:
-
             st.error(f"Алдаа гарлаа: {e}")
