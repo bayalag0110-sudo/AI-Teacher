@@ -6,7 +6,7 @@ from io import BytesIO
 # 1. Gemini AI Тохиргоо (Secrets-ээс унших)
 # Streamlit Cloud-ийн Settings -> Secrets хэсэгт GOOGLE_API_KEY-ээ хийнэ.
 if "GOOGLE_API_KEY" in st.secrets:
-    api_key = st.secrets["GOOGLE_API_KEY"]
+    api_key = st.secrets[GOOGLE_API_KEY]
 else:
     # Хэрэв локал дээр ажиллуулж байгаа бол доорх хашилтан дотор Key-ээ хийж болно
     api_key = "AIzaSyD-qC9TwkdOxl38icULTJ4BHzVTMNoPvTA"
@@ -95,5 +95,6 @@ if st.button("✨ Төлөвлөгөө боловсруулах"):
                 )
         except Exception as e:
             st.error(f"Алдаа гарлаа: {e}")
+
 
 
