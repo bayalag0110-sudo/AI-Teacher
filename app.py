@@ -1,118 +1,104 @@
 import streamlit as st
 import requests
-from docx import Document
-from docx.shared import Pt
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from io import BytesIO
 import datetime
+from docx import Document
+from io import BytesIO
 
-# 1. Хуудасны тохиргоо
-st.set_page_config(page_title="Ухаалаг Багшийн Туслах", page_icon="🎓", layout="wide")
+# 1. Хуудасны тохиргоо болон Статистик (Session State ашиглав)
+st.set_page_config(page_title="Багшийн Туслах", layout="wide")
 
-st.title("🎓 Ээлжит хичээлийн төлөвлөлт")
-st.info("Таны ирүүлсэн албан ёсны загварын дагуу AI төлөвлөгөө боловсруулна.")
+if 'total_plans' not in st.session_state:
+    st.session_state.total_plans = 124  # Жишээ статистик
+if 'total_teachers' not in st.session_state:
+    st.session_state.total_teachers = 45 # Жишээ статистик
 
-# 2. Secrets-ээс Groq API Key-ийг унших
-if "GROQ_API_KEY" in st.secrets:
-    api_key = st.secrets["GROQ_API_KEY"]
-else:
-    st.error("Secrets хэсэгт GROQ_API_KEY-ээ оруулна уу.")
+# 2. Нэвтрэх хэсэг (Login)
+def login():
+    st.sidebar.title("🔐 Нэвтрэх")
+    email = st.sidebar.text_input("Эмайл хаяг")
+    password = st.sidebar.text_input("Нууц үг", type="password")
+    if st.sidebar.button("Нэвтрэх"):
+        if email and password: # Бодит системд энд баазтай тулгана
+            st.session_state.logged_in = True
+            st.session_state.user_email = email
+            st.rerun()
+
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+
+if not st.session_state.logged_in:
+    st.title("🎓 Ухаалаг Багшийн Туслах Систем")
+    st.info("Үргэлжлүүлэхийн тулд зүүн талын цэсээр нэвтэрнэ үү.")
+    
+    # Статистик харуулах (Нэвтрээгүй үед ч харагдана)
+    col1, col2 = st.columns(2)
+    col1.metric("Нийт боловсруулсан хичээл", st.session_state.total_plans)
+    col2.metric("Нийт бүртгэлтэй багш нар", st.session_state.total_teachers)
+    login()
     st.stop()
 
-# 3. AI холболтын функц (Llama 3.3)
-def generate_lesson_plan(subject, grade, topic, duration, date):
+# 3. Үндсэн Программ (Нэвтэрсний дараа)
+st.sidebar.success(f"Нэвтэрсэн: {st.session_state.user_email}")
+if st.sidebar.button("Гарах"):
+    st.session_state.logged_in = False
+    st.rerun()
+
+st.title("📝 Ээлжит хичээлийн төлөвлөлт")
+
+# 4. Groq AI функц (Llama 3.3 ашиглав)
+def generate_plan(subject, grade, topic, duration):
+    if "GROQ_API_KEY" not in st.secrets:
+        return "API Key тохируулаагүй байна."
+    
     url = "https://api.groq.com/openai/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
+    headers = {"Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}", "Content-Type": "application/json"}
     
-    # Загвар файл дахь бүтцийг AI-д зааварчилж байна
+    # Таны ирүүлсэн Excel загварын дагуу Prompt
     prompt = f"""
-Чи бол Монгол улсын боловсролын салбарын мэргэжилтэн багш. 
-Дараах мэдээллийн дагуу "ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨЛТ"-ийг боловсруулж өг.
-Мэдээлэл: Хичээл: {subject}, Анги: {grade}, Сэдэв: {topic}, Хугацаа: {duration} минут, Огноо: {date}.
-
-Хариултыг заавал дараах бүтцээр (хүснэгт болон текст) гарга:
-1. Хичээлийн зорилго: (Сурагч юу сурч мэдэх вэ?)
-2. Үйл явц (Хичээлийн үе шат бүрээр):
-   - Эхлэл хэсэг (хичээлийн зорилго тодорхой болгох, сэдэлжүүлэг, сэргээн санах): Хугацаа, Суралцахуйн үйл ажиллагаа, Багшийн дэмжлэг, Хэрэглэгдэхүүн.
-   - Өрнөл хэсэг (арга, мэдээлэл боловсруулах, задлан шинжлэх, мэдлэг бүтээх): Хугацаа, Суралцахуйн үйл ажиллагаа, Багшийн дэмжлэг, Хэрэглэгдэхүүн.
-   - Төгсгөл хэсэг (ойлголтоо нэгтгэн дүгнэх, үнэлгээ): Хугацаа, Суралцахуйн үйл ажиллагаа, Багшийн дэмжлэг, Хэрэглэгдэхүүн.
-3. Гэрийн даалгавар: (Тодорхой дасгал ажил)
-4. Ялгаатай сурагчидтай ажиллах аргачлал: (Дэмжлэг шаардлагатай сурагчдад зориулсан)
-5. Нэмэлт: (Багшийн дүгнэлт, анхаарах зүйлс)
-"""
+    Монгол улсын 'ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨЛТ'-ийн загварын дагуу боловсруул.
+    Хичээл: {subject}, Анги: {grade}, Сэдэв: {topic}, Хугацаа: {duration} мин.
     
-    payload = {
+    Бүтэц:
+    1. Хичээлийн зорилго
+    2. Үйл явц (Хүснэгт):
+       - Эхлэл хэсэг (сэдэлжүүлэг, сэргээн санах)
+       - Өрнөл хэсэг (мэдлэг бүтээх)
+       - Төгсгөл хэсэг (дүгнэлт, үнэлгээ)
+    3. Гэрийн даалгавар
+    4. Ялгаатай сурагчидтай ажиллах аргачлал
+    5. Багшийн дүгнэлт
+    """
+    
+    data = {
         "model": "llama-3.3-70b-versatile",
-        "messages": [
-            {"role": "system", "content": "Чи бол хичээлийн төлөвлөгөө боловсруулдаг мэргэжилтэн."},
-            {"role": "user", "content": prompt}
-        ],
-        "temperature": 0.6
+        "messages": [{"role": "user", "content": prompt}]
     }
     
-    try:
-        response = requests.post(url, headers=headers, json=payload, timeout=40)
-        if response.status_code == 200:
-            return response.json()['choices'][0]['message']['content']
-        else:
-            return f"❌ Алдаа: {response.status_code} - {response.text}"
-    except Exception as e:
-        return f"❌ Холболтын алдаа: {str(e)}"
+    res = requests.post(url, headers=headers, json=data)
+    if res.status_code == 200:
+        st.session_state.total_plans += 1 # Статистик нэмэх
+        return res.json()['choices'][0]['message']['content']
+    return f"Алдаа: {res.text}"
 
-# 4. Word файл үүсгэх функц (Загварын дагуу)
-def create_docx(subject, grade, topic, duration, date, content):
-    doc = Document()
-    
-    # БАТЛАВ хэсэг
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    run = p.add_run("БАТЛАВ\nСУРГАЛТЫН МЕНЕЖЕР: .................")
-    run.bold = True
-    
-    # Гарчиг
-    title = doc.add_heading('ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨЛТ', 0)
-    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    
-    # Үндсэн мэдээлэл
-    doc.add_paragraph(f"Анги: {grade}")
-    doc.add_paragraph(f"Сар, өдөр, хугацаа: {date}, {duration} минут")
-    doc.add_paragraph(f"Ээлжит хичээлийн сэдэв: {topic}")
-    
-    # AI-аас ирсэн контент
-    doc.add_paragraph("\n" + content)
-    
-    bio = BytesIO()
-    doc.save(bio)
-    bio.seek(0)
-    return bio
+# 5. Интерфэйс
+col_a, col_b = st.columns(2)
+with col_a:
+    sub = st.text_input("Хичээл", "Мэдээлэл зүй")
+    grd = st.selectbox("Анги", [f"{i}-р анги" for i in range(1, 13)])
+with col_b:
+    tpc = st.text_input("Хичээлийн сэдэв")
+    dur = st.number_input("Хугацаа (мин)", value=40)
 
-# 5. Хэрэглэгчийн интерфейс
-with st.sidebar:
-    st.header("⚙️ Тохиргоо")
-    subject = st.text_input("📚 Хичээлийн нэр", "Мэдээлэл зүй")
-    grade = st.selectbox("🏫 Анги", [f"{i}-р анги" for i in range(1, 13)], index=6)
-    date = st.date_input("📅 Огноо", datetime.date.today())
-    duration = st.number_input("⏱️ Хугацаа (минут)", value=40)
-
-topic = st.text_input("🔍 Ээлжит хичээлийн сэдэв оруулна уу", placeholder="Жишээ: Энгийн бутархай")
-
-if st.button("✨ Төлөвлөгөө боловсруулах"):
-    if not topic:
-        st.warning("⚠️ Хичээлийн сэдвээ оруулна уу.")
-    else:
-        with st.spinner("Таны ирүүлсэн загварын дагуу AI ажиллаж байна..."):
-            result = generate_lesson_plan(subject, grade, topic, duration, date)
-            st.divider()
+if st.button("Төлөвлөгөө боловсруулах"):
+    if tpc:
+        with st.spinner("AI ажиллаж байна..."):
+            result = generate_plan(sub, grd, tpc, dur)
             st.markdown(result)
             
-            # Word татах хэсэг
-            docx_file = create_docx(subject, grade, topic, duration, date, result)
-            st.download_button(
-                label="📥 Төлөвлөгөөг Word файлаар татах",
-                data=docx_file,
-                file_name=f"Eeljit_Plan_{topic}.docx",
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            )
+            # Word файл татах
+            doc = Document()
+            doc.add_heading("ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨЛТ", 0)
+            doc.add_paragraph(result)
+            bio = BytesIO()
+            doc.save(bio)
+            st.download_button("📥 Word татах", bio.getvalue(), f"{tpc}.docx")
