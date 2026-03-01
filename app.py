@@ -112,9 +112,10 @@ with tab_main:
             st.write("👈 Зүүн талд мэдээллээ оруулаад 'Боловсруулах' товчийг дарна уу.")
 
 with tab_portals:
-    p_tab1, p_tab2, p_tab3, p_tab4 = st.tabs(["Econtent", "ESIS", "Medle"])
+    p_tab1, p_tab2, p_tab3, p_tab4 = st.tabs(["Econtent", "ESIS", "Medle", "Edumap"])
     with p_tab1: st.components.v1.iframe("https://econtent.edu.mn/book", height=700)
     with p_tab2: st.components.v1.iframe("https://https://edumap.mn//", height=700)
     with p_tab3: st.components.v1.iframe("https://medle.mn/", height=700)
     with p_tab4: st.components.v1.iframe("https://bagsh.esis.edu.mn/", height=700)
+
 
