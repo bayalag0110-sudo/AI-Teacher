@@ -4,64 +4,77 @@ import json
 from docx import Document
 from io import BytesIO
 
-# 1. Төхөөрөмжийн тохиргоо
+# 1. Хуудасны тохиргоо
 st.set_page_config(page_title="Ухаалаг Багшийн Туслах", page_icon="🎓")
 
-# Secrets-ээс шинэ API Key-ийг унших
-if "GOOGLE_API_KEY" in st.secrets:
-    api_key = st.secrets["GOOGLE_API_KEY"]
+st.title("🎓 Ухаалаг Багшийн Туслах")
+st.info("Хамгийн тогтвортой Groq AI холболт идэвхжлээ.")
+
+# 2. Secrets-ээс Groq API Key-ийг унших
+if "GROQ_API_KEY" in st.secrets:
+    api_key = st.secrets["GROQ_API_KEY"]
 else:
-    st.error("Secrets хэсэгт GOOGLE_API_KEY-ээ оруулна уу.")
+    st.error("Secrets хэсэгт GROQ_API_KEY-ээ оруулна уу.")
     st.stop()
 
-# 2. AI холболт - ТОГТВОРТОЙ V1 ХУВИЛБАР
+# 3. AI холболтын функц (Groq)
 def generate_lesson_plan(subject, grade, topic, duration):
-    # Хамгийн тогтвортой V1 хаяг руу шилжүүлэв (404 алдаанаас сэргийлнэ)
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
     
-    headers = {'Content-Type': 'application/json'}
-    prompt = f"Чи бол туршлагатай багш. {subject} хичээлийн {grade}-д орох '{topic}' сэдвээр {duration} минутын хичээлийн төлөвлөгөөг Монгол хэл дээр маш тодорхой гаргаж өг."
+    prompt = f"Чи бол туршлагатай багш. {subject} хичээлийн {grade}-д орох '{topic}' сэдвээр {duration} минутын хичээлийн төлөвлөгөөг Монгол хэл дээр маш цэгцтэй гаргаж өг."
     
-    data = {"contents": [{"parts": [{"text": prompt}]}]}
-
-    # API хүсэлт илгээх
-    response = requests.post(url, headers=headers, data=json.dumps(data))
+    payload = {
+        "model": "llama3-8b-8192",
+        "messages": [
+            {"role": "system", "content": "Чи хичээлийн төлөвлөгөө гаргадаг мэргэжилтэн."},
+            {"role": "user", "content": prompt}
+        ]
+    }
     
-    if response.status_code == 200:
-        result = response.json()
-        return result['candidates'][0]['content']['parts'][0]['text']
-    else:
-        # Алдаа гарвал дэлгэрэнгүй харуулна
-        raise Exception(f"Алдааны код: {response.status_code}, Тайлагнал: {response.text}")
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        if response.status_code == 200:
+            return response.json()['choices'][0]['message']['content']
+        else:
+            return f"❌ Алдаа: {response.status_code} - {response.text}"
+    except Exception as e:
+        return f"❌ Холболтын алдаа: {str(e)}"
 
-# 3. Вэб дизайн
-st.title("🎓 Ухаалаг Багшийн Туслах")
-st.info("Хамгийн тогтвортой Gemini v1 холболт идэвхжлээ.")
+# 4. Word файл болгон хөрвүүлэх функц
+def create_docx(text):
+    doc = Document()
+    doc.add_heading('Хичээлийн төлөвлөгөө', 0)
+    doc.add_paragraph(text)
+    bio = BytesIO()
+    doc.save(bio)
+    bio.seek(0)
+    return bio
 
-subject = st.selectbox("📚 Хичээл", ["Математик", "Мэдээлэл технологи", "Монгол хэл", "Физик", "Биологи", "Хими", "Түүх"])
-grade = st.selectbox("🏫 Анги", [f"{i}-р анги" for i in range(1, 13)])
-topic = st.text_input("🔍 Хичээлийн сэдэв", placeholder="Жишээ: Нарны систем")
-duration = st.slider("⏱️ Хугацаа (минут)", 20, 90, 40)
+# 5. Хэрэглэгчийн интерфейс
+with st.container():
+    subject = st.selectbox("📚 Хичээл", ["Математик", "Монгол хэл", "Биологи", "Физик", "Хими", "Түүх"])
+    grade = st.selectbox("🏫 Анги", [f"{i}-р анги" for i in range(1, 13)])
+    topic = st.text_input("🔍 Хичээлийн сэдэв", placeholder="Жишээ: Мэдээлэл гэж юу вэ?")
+    duration = st.slider("⏱️ Хугацаа (минут)", 20, 90, 40)
 
 if st.button("✨ Хичээл төлөвлөгөө боловсруулах"):
     if not topic:
-        st.warning("⚠️ Сэдвээ оруулна уу!")
+        st.warning("⚠️ Сэдвээ оруулна уу.")
     else:
-        try:
-            with st.spinner("🛠️ AI ажиллаж байна..."):
-                plan_text = generate_lesson_plan(subject, grade, topic, duration)
-                st.markdown("---")
-                st.markdown("### 📝 Боловсруулсан төлөвлөгөө")
-                st.write(plan_text)
-                
-                # Word файл үүсгэх
-                doc = Document()
-                doc.add_heading('ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨГӨӨ', 0)
-                doc.add_paragraph(plan_text)
-                bio = BytesIO()
-                doc.save(bio)
-                bio.seek(0)
-                
-                st.download_button(label="💾 Word файл татах", data=bio, file_name=f"{topic}.docx")
-        except Exception as e:
-            st.error(f"Алдаа: {e}")
+        with st.spinner("AI төлөвлөгөө боловсруулж байна..."):
+            result = generate_lesson_plan(subject, grade, topic, duration)
+            st.divider()
+            st.markdown(result)
+            
+            # Татаж авах товчлуур
+            docx_file = create_docx(result)
+            st.download_button(
+                label="📥 Төлөвлөгөөг Word хэлбэрээр татах",
+                data=docx_file,
+                file_name=f"plan_{topic}.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
