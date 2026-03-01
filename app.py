@@ -7,27 +7,21 @@ from io import BytesIO
 # 1. Тохиргоо
 st.set_page_config(page_title="Ухаалаг Багшийн Туслах", page_icon="🎓")
 
-# Secrets-ээс Key-ийг унших
 if "GOOGLE_API_KEY" in st.secrets:
     api_key = st.secrets["GOOGLE_API_KEY"]
 else:
     st.error("Secrets хэсэгт GOOGLE_API_KEY-ээ оруулна уу.")
     st.stop()
 
-# 2. AI-тай шууд холбогдох функц (Бид энд v1 хувилбарыг ашиглана)
+# 2. AI холболтын функц
 def generate_lesson_plan(subject, grade, topic, duration):
-    # Хамгийн тогтвортой API хаяг
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
+    # Хамгийн тогтвортой 'gemini-pro' загварыг ашиглах
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
     
     headers = {'Content-Type': 'application/json'}
-    
     prompt = f"{subject} хичээлийн {grade}-д орох '{topic}' сэдвээр {duration} минутын хичээлийн төлөвлөгөөг Монгол хэл дээр маш тодорхой гаргаж өг."
     
-    data = {
-        "contents": [{
-            "parts": [{"text": prompt}]
-        }]
-    }
+    data = {"contents": [{"parts": [{"text": prompt}]}]}
 
     response = requests.post(url, headers=headers, data=json.dumps(data))
     
@@ -35,12 +29,17 @@ def generate_lesson_plan(subject, grade, topic, duration):
         result = response.json()
         return result['candidates'][0]['content']['parts'][0]['text']
     else:
-        # Хэрэв алдаа гарвал дэлгэрэнгүй тайлбарлана
-        raise Exception(f"Алдааны код: {response.status_code}, Тайлагнал: {response.text}")
+        # Хэрэв gemini-pro ажиллахгүй бол өөр хувилбарыг турших
+        alt_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key={api_key}"
+        alt_response = requests.post(alt_url, headers=headers, data=json.dumps(data))
+        if alt_response.status_code == 200:
+            return alt_response.json()['candidates'][0]['content']['parts'][0]['text']
+        
+        raise Exception(f"Код: {response.status_code}, Тайлагнал: {response.text}")
 
-# 3. Вэб сайтын хэсэг
+# 3. Вэб дизайн
 st.title("🎓 Ухаалаг Багшийн Туслах")
-st.write("Шууд API холболт ашиглаж байна.")
+st.info("Тогтвортой 'Gemini Pro' загварыг ашиглаж байна.")
 
 subject = st.selectbox("📚 Хичээл", ["Математик", "Мэдээлэл технологи", "Монгол хэл", "Физик", "Биологи"])
 grade = st.selectbox("🏫 Анги", [f"{i}-р анги" for i in range(1, 13)])
@@ -54,11 +53,10 @@ if st.button("✨ Хичээл төлөвлөгөө боловсруулах"):
         try:
             with st.spinner("🛠️ AI ажиллаж байна..."):
                 plan_text = generate_lesson_plan(subject, grade, topic, duration)
-                
                 st.markdown("### 📝 Боловсруулсан төлөвлөгөө")
                 st.write(plan_text)
                 
-                # Word файл үүсгэх
+                # Word файл
                 doc = Document()
                 doc.add_heading('ХИЧЭЭЛИЙН ТӨЛӨВЛӨГӨӨ', 0)
                 doc.add_paragraph(plan_text)
@@ -66,11 +64,6 @@ if st.button("✨ Хичээл төлөвлөгөө боловсруулах"):
                 doc.save(bio)
                 bio.seek(0)
                 
-                st.download_button(
-                    label="💾 Word файлаар татах",
-                    data=bio,
-                    file_name=f"{topic}.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                )
+                st.download_button(label="💾 Word файл татах", data=bio, file_name=f"{topic}.docx")
         except Exception as e:
-            st.error(f"Алдаа гарлаа: {e}")
+            st.error(f"Алдаа: {e}")
