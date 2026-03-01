@@ -5,86 +5,109 @@ from docx import Document
 from io import BytesIO
 
 # 1. Хуудасны тохиргоо
-st.set_page_config(page_title="Medle AI - Чанарын Хяналт", layout="wide", page_icon="📝")
+st.set_page_config(page_title="Medle AI - Чанарын Хяналт v4", layout="wide", page_icon="🎓")
 
-# 2. Session State удирдлага
+# 2. Session State - Түүх болон харагдацыг удирдах
 if 'history' not in st.session_state: st.session_state.history = []
 if 'current_view' not in st.session_state: st.session_state.current_view = None
 
-# 🌟 ХАТУУ ЗААВАРЧИЛГАА (System Instruction)
-# Temperature 0.1 байгаа үед AI энэ зааврыг математик нарийвчлалтай дагана.
+# 🌟 МАШ ХАТУУ ЗААВАРЧИЛГАА (System Instruction)
+# Энэ хэсэгт таны бүх шаардлагыг "Хууль" мэт суулгаж өгсөн.
 SYSTEM_INSTRUCTION = """
-Чи бол Монгол улсын Боловсролын Магадлан Итгэмжлэлийн шинжээч багш. 
-Чиний даалгавар бол зөвхөн хэрэглэгчийн өгсөн СУРАХ БИЧГИЙН АГУУЛГА-д тулгуурлан ээлжит хичээл боловсруулах.
+Чи бол Монгол улсын Боловсролын шилдэг шинжээч багш. 
+Чиний даалгавар бол зөвхөн хэрэглэгчийн өгсөн СУРАХ БИЧГИЙН АГУУЛГА-д тулгуурлан 'загвар.docx'-ийн дагуу ээлжит хичээл боловсруулах.
 
-[ХАТУУ ДҮРЭМ]:
-1. TEMPERATURE 0.1: Хэзээ ч өөрөөсөө мэдээлэл зохиож болохгүй. Зөвхөн сурах бичигт байгаа жишээ, дасгалыг ашигла.
-2. 70/30 ХАРЬЦАА: Сурагчийн идэвхтэй оролцоо 70% (дасгал ажиллах, унших, хэлэлцэх), багшийн чиглүүлэг 30% байна.
-3. ЗАГВАР: 'загвар.docx'-ийн бүтцийг ягштал баримтална.
+[МӨРДӨХ ХАТУУ ДҮРЭМ]:
+1. TEMPERATURE 0.1: Өөрийн мэдлэгээс зохиож болохгүй. Зөвхөн өгөгдсөн текстийг ашигла.
+2. 70/30 ХАРЬЦАА: Сурагчийн идэвхтэй оролцоо 70%, багшийн чиглүүлэг 30% байна.
+3. 3 ТҮВШНИЙ ДААЛГАВАР: Хичээлийн төгсгөлд сорилыг Хялбар, Дунд, Хүнд түвшинд ялгаж гарга.
 
-[БҮТЭЦ]:
-- БАТЛАВ (Баруун дээд өнцөгт: Сургуулийн захирал, Сургалтын менежер Б. НАМУУН)
+[ЗАГВАРЫН БҮТЭЦ]:
+- БАТЛАВ: Баруун дээд өнцөгт (СУРГАЛТЫН МЕНЕЖЕР Б. НАМУУН)
 - ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨГӨӨ (Гарчиг)
-- Хүснэгт: | Хичээлийн үе шат | Хугацаа | Суралцахуйн үйл ажиллагаа | Багшийн дэмжлэг | Хэрэглэгдэхүүн |
-- Үе шатууд: 
-  * Эхлэл (5 мин): Сэдэлжүүлэг
-  * Өрнөл (25 мин): Мэдлэг бүтээх
-  * Төгсгөл (10 мин): Нэгтгэн дүгнэх
-- Гэрийн даалгавар, Ялгаатай сурагчидтай ажиллах заавар, Багшийн дүгнэлт.
+- ХҮСНЭГТ: | Хичээлийн үе шат | Хугацаа | Суралцахуйн үйл ажиллагаа | Багшийн дэмжлэг | Хэрэглэгдэхүүн |
+- ҮЕ ШАТ: Эхлэл (5 мин), Өрнөл (25 мин), Төгсгөл (10 мин)
+- ГЭРИЙН ДААЛГАВАР, ЯЛГААТАЙ СУРАГЧИДТАЙ АЖИЛЛАХ АРГАЧЛАЛ, БАГШИЙН ДҮГНЭЛТ.
 """
 
-# 3. Sidebar - Түүх
-st.sidebar.title("🕒 Боловсруулсан түүх")
+# 3. Sidebar - Төлөвлөгөөний түүх
+st.sidebar.title("🕒 Түүх /History/")
+if st.sidebar.button("➕ Шинэ төлөвлөгөө"):
+    st.session_state.current_view = None
+    st.rerun()
+
+st.sidebar.markdown("---")
 for idx, item in enumerate(st.session_state.history):
-    if st.sidebar.button(f"📄 {item['topic']}", key=f"h_{idx}"):
+    if st.sidebar.button(f"📄 {item['topic']} ({item['date']})", key=f"hist_{idx}"):
         st.session_state.current_view = item
 
-# 4. Үндсэн хэсэг
-st.title("👨‍🏫 Боловсролын Чанарыг Хангасан Төлөвлөлт")
+# 4. Үндсэн цонх
+st.title("👨‍🏫 Мэргэжлийн Ээлжит Хичээл Боловсруулалт")
 
-col_l, col_r = st.columns([1, 1.2])
+tab_main, tab_portals = st.tabs(["📝 Төлөвлөгөө & Сорил", "🌐 Порталууд"])
 
-with col_l:
-    st.subheader("⚙️ Өгөгдөл оруулах")
-    sub = st.text_input("Хичээл", "Мэдээлэл зүй")
-    grd = st.text_input("Анги", "6-р анги")
-    tpc = st.text_input("Сэдэв")
-    pages = st.text_area("Сурах бичгийн агуулга (Текстээ энд хуулна уу)")
-    
-    if st.button("🚀 Чанартай боловсруулах (Temp 0.1)"):
-        if tpc and pages:
-            with st.spinner("Зөвхөн сурах бичгийн агуулгаар боловсруулж байна..."):
-                url = "https://api.groq.com/openai/v1/chat/completions"
-                headers = {"Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}"}
-                
-                payload = {
-                    "model": "llama-3.3-70b-versatile",
-                    "messages": [
-                        {"role": "system", "content": SYSTEM_INSTRUCTION},
-                        {"role": "user", "content": f"Агуулга: {pages}\n\nЭнэ агуулгаар {tpc} сэдэвт хичээлийг загвар.docx бүтцээр боловсруул."}
-                    ],
-                    "temperature": 0.1  # <--- Хамгийн дээд нарийвчлал
-                }
-                
-                res = requests.post(url, headers=headers, json=payload)
-                if res.status_code == 200:
-                    ans = res.json()['choices'][0]['message']['content']
-                    new_item = {"topic": tpc, "content": ans}
-                    st.session_state.history.append(new_item)
-                    st.session_state.current_view = new_item
-                    st.rerun()
+with tab_main:
+    col_input, col_view = st.columns([1, 1.2])
 
-with col_r:
-    if st.session_state.current_view:
-        item = st.session_state.current_view
-        st.subheader(f"📄 Төлөвлөгөө: {item['topic']}")
-        st.markdown(item['content'])
+    with col_input:
+        st.subheader("⚙️ Өгөгдлийн сан")
+        sub = st.text_input("Хичээл", "Мэдээлэл зүй")
+        grd = st.text_input("Анги", "6-р анги")
+        tpc = st.text_input("Хичээлийн сэдэв")
         
-        # Word татах
-        doc = Document()
-        doc.add_paragraph(item['content'])
-        bio = BytesIO()
-        doc.save(bio)
-        st.download_button("📥 Word татах", bio.getvalue(), f"{item['topic']}.docx")
-    else:
-        st.info("👈 Зүүн талд сурах бичгийн текстээ оруулаад 'Чанартай боловсруулах' дээр дарна уу.")
+        # Сурах бичгийн агуулга хуулах хэсэг (Маш чухал)
+        content_text = st.text_area("📖 Сурах бичгийн агуулга (Энд текстийг хуулна уу)", height=300)
+        
+        if st.button("🚀 Чанарын дагуу боловсруулах"):
+            if tpc and content_text:
+                with st.spinner("AI Temperature 0.1 горимд ажиллаж байна..."):
+                    url = "https://api.groq.com/openai/v1/chat/completions"
+                    headers = {"Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}"}
+                    
+                    payload = {
+                        "model": "llama-3.3-70b-versatile",
+                        "messages": [
+                            {"role": "system", "content": SYSTEM_INSTRUCTION},
+                            {"role": "user", "content": f"Агуулга: {content_text}\n\nСэдэв: {tpc}\nАнги: {grd}\nХичээл: {sub}"}
+                        ],
+                        "temperature": 0.1,  # Хамгийн өндөр нарийвчлал
+                        "max_tokens": 4096
+                    }
+                    
+                    res = requests.post(url, headers=headers, json=payload)
+                    if res.status_code == 200:
+                        ans = res.json()['choices'][0]['message']['content']
+                        new_data = {
+                            "date": datetime.datetime.now().strftime("%H:%M"),
+                            "topic": tpc,
+                            "content": ans,
+                            "sub": sub, "grd": grd
+                        }
+                        st.session_state.history.append(new_data)
+                        st.session_state.current_view = new_data
+                        st.rerun()
+
+    with col_view:
+        if st.session_state.current_view:
+            item = st.session_state.current_view
+            st.success(f"✅ {item['topic']} - Чанарын шалгалтаар батлагдлаа")
+            
+            # Үр дүнг харуулах
+            st.markdown(item['content'])
+            
+            # Word файл болгож татах
+            doc = Document()
+            doc.add_paragraph(item['content'])
+            bio = BytesIO()
+            doc.save(bio)
+            st.download_button("📥 Word татах", bio.getvalue(), f"{item['topic']}.docx")
+        else:
+            st.info("👈 Зүүн талд агуулгаа оруулаад 'Боловсруулах' дээр дарна уу.")
+
+# 5. Порталууд
+with tab_portals:
+    p_tabs = st.tabs(["EduMap", "Econtent", "ESIS", "Medle"])
+    with p_tabs[0]: st.components.v1.iframe("https://edumap.mn/", height=800)
+    with p_tabs[1]: st.components.v1.iframe("https://econtent.edu.mn/book", height=800)
+    with p_tabs[2]: st.components.v1.iframe("https://bagsh.esis.edu.mn/", height=800)
+    with p_tabs[3]: st.components.v1.iframe("https://medle.mn/", height=800)
