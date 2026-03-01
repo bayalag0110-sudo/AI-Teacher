@@ -4,7 +4,7 @@ import json
 from docx import Document
 from io import BytesIO
 
-# 1. Тохиргоо
+# 1. Төхөөрөмжийн тохиргоо
 st.set_page_config(page_title="Ухаалаг Багшийн Туслах", page_icon="🎓")
 
 if "GOOGLE_API_KEY" in st.secrets:
@@ -13,10 +13,10 @@ else:
     st.error("Secrets хэсэгт GOOGLE_API_KEY-ээ оруулна уу.")
     st.stop()
 
-# 2. AI холболтын функц
+# 2. AI холболт - ТОГТВОРТОЙ ХУВИЛБАР
 def generate_lesson_plan(subject, grade, topic, duration):
-    # Хамгийн тогтвортой 'gemini-pro' загварыг ашиглах
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
+    # Хамгийн сүүлийн үеийн тогтвортой V1 хаяг
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
     
     headers = {'Content-Type': 'application/json'}
     prompt = f"{subject} хичээлийн {grade}-д орох '{topic}' сэдвээр {duration} минутын хичээлийн төлөвлөгөөг Монгол хэл дээр маш тодорхой гаргаж өг."
@@ -29,17 +29,11 @@ def generate_lesson_plan(subject, grade, topic, duration):
         result = response.json()
         return result['candidates'][0]['content']['parts'][0]['text']
     else:
-        # Хэрэв gemini-pro ажиллахгүй бол өөр хувилбарыг турших
-        alt_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key={api_key}"
-        alt_response = requests.post(alt_url, headers=headers, data=json.dumps(data))
-        if alt_response.status_code == 200:
-            return alt_response.json()['candidates'][0]['content']['parts'][0]['text']
-        
-        raise Exception(f"Код: {response.status_code}, Тайлагнал: {response.text}")
+        raise Exception(f"Алдааны код: {response.status_code}, Тайлагнал: {response.text}")
 
 # 3. Вэб дизайн
 st.title("🎓 Ухаалаг Багшийн Туслах")
-st.info("Тогтвортой 'Gemini Pro' загварыг ашиглаж байна.")
+st.success("Хамгийн сүүлийн үеийн Gemini 1.5 Flash (v1) ашиглаж байна.")
 
 subject = st.selectbox("📚 Хичээл", ["Математик", "Мэдээлэл технологи", "Монгол хэл", "Физик", "Биологи"])
 grade = st.selectbox("🏫 Анги", [f"{i}-р анги" for i in range(1, 13)])
