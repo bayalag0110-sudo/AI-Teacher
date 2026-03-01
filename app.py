@@ -30,10 +30,8 @@ SYSTEM_INSTRUCTION = """
 1. TEMPERATURE 0.1: Зөвхөн сурах бичигт байгаа дасгал, даалгавар, мэдээллийг ашигла. Юу ч зохиож болохгүй.
 2. 70/30 ХАРЬЦАА: Сурагчийн идэвхтэй оролцоо 70% (унших, дасгал ажиллах), багшийн дэмжлэг 30% байна.
 3. ЗАГВАРЫН БҮТЭЦ (ЯГШТАЛ БАРИМТАЛ):
-   БАТЛАВ                                             СУРГАЛТЫН МЕНЕЖЕР                              Б. НАМУУН
    ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨГӨӨ
    Анги:  
-   Сар, өдөр, хугацаа: 
    Ээлжит хичээлийн сэдэв:  
    Хичээлийн зорилго:  
    Үйл явц:
@@ -46,6 +44,7 @@ SYSTEM_INSTRUCTION = """
    Гэрийн даалгавар:
    Ялгаатай сурагчидтай ажиллах аргачлал:
    Нэмэлт: тухайн хичээлийн талаарх багшийн дүгнэлт:
+   Сорил:
 """
 
 def extract_text_from_pdf(file):
@@ -60,13 +59,13 @@ def extract_text_from_pdf(file):
 with st.sidebar:
     st.title("🎓 Багшийн туслах")
     
-    st.subheader("🌐 Сургалтын порталууд")
+    st.subheader("🌐 Сургалтын платформ")
     portals = {
         "Econtent (Сурах бичиг)": "https://econtent.edu.mn/book",
         "Medle.mn (Цахим сургалт)": "https://medle.mn/",
-        "EduMap (Хичээл төлөвлөлт)": "https://edumap.mn/",
+        "EduMap (Цахим журнал)": "https://edumap.mn/",
         "ESIS (Багшийн бүртгэл)": "https://bagsh.esis.edu.mn/",
-        "Bagsh.edu.mn (Портал)": "https://bagsh.edu.mn/"
+        "Bagsh.edu.mn (Багшийн хөгжил)": "https://bagsh.edu.mn/"
     }
     for name, url in portals.items():
         st.markdown(f'<a href="{url}" target="_blank" class="portal-link">{name}</a>', unsafe_allow_html=True)
@@ -89,11 +88,11 @@ col_in, col_out = st.columns([1, 1.2])
 with col_in:
     st.subheader("⚙️ Оролтын өгөгдөл")
     uploaded_file = st.file_uploader("Сурах бичгийн PDF оруулна уу", type="pdf")
-    sub = st.text_input("Хичээл", "Мэдээлэл зүй")
-    grd = st.text_input("Анги", "6а")
+    sub = st.text_input("Хичээл",)
+    grd = st.text_input("Анги")
     tpc = st.text_input("Хичээлийн сэдэв")
     
-    if st.button("🚀 Боловсруулах (Temp 0.1)"):
+    if st.button("🚀 Боловсруулах "):
         if uploaded_file and tpc:
             with st.spinner("PDF-ээс агуулгыг шүүж, загварын дагуу бэлтгэж байна..."):
                 pdf_text = extract_text_from_pdf(uploaded_file)
@@ -134,10 +133,11 @@ with col_out:
         doc.save(bio)
         st.download_button("📥 Word татах", bio.getvalue(), f"{item['topic']}.docx")
     else:
-        st.info("👈 Зүүн талаас PDF-ээ оруулж, сэдвээ бичнэ үү.")
+        st.info("👈 Сурах бичгээ PDF-ээр оруул")
 
 # 5. Порталыг шууд доор нь харах (Сонгосон бол)
 st.divider()
-st.subheader("🌐 Сургалтын портал харах")
-portal_choice = st.selectbox("Портал сонгох:", list(portals.values()))
+st.subheader("🌐 Сургалтын платформ харах")
+portal_choice = st.selectbox("Сонгох:", list(portals.values()))
 st.components.v1.iframe(portal_choice, height=700, scrolling=True)
+
