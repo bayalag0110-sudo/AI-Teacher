@@ -117,7 +117,7 @@ with tab_portals:
     with p_tab2: st.components.v1.iframe("https://edumap.mn/", height=800)
     with p_tab3: st.components.v1.iframe("https://bagsh.esis.edu.mn/", height=800)
     with p_tab4: st.components.v1.iframe("https://medle.mn/", height=800)
-        # ... (өмнөх кодууд)
+     # ... (дээрх кодууд)
 
 if st.button("✨ Чанартай боловсруулах"):
     if tpc:
@@ -125,10 +125,7 @@ if st.button("✨ Чанартай боловсруулах"):
             url = "https://api.groq.com/openai/v1/chat/completions"
             headers = {"Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}"}
             
-            # 1. Таны оруулсан USER PROMPT
-            user_prompt = f"Хичээл: {sub}, Анги: {grd}, Сэдэв: {tpc}, Хуудас: {pages}. Сурах бичгийн агуулгыг ашиглан чанартай төлөвлөгөө, сорил, заавар гарга."
-            
-            # 2. ЭНЭ ХЭСЭГ БОЛ PAYLOAD (API-руу явах өгөгдөл)
+            # ЭНЭ ХЭСЭГ БОЛ PAYLOAD
             payload = {
                 "model": "llama-3.3-70b-versatile",
                 "messages": [
@@ -140,14 +137,13 @@ if st.button("✨ Чанартай боловсруулах"):
                     },
                     {
                         "role": "user", 
-                        "content": user_prompt
+                        "content": f"Хичээл: {sub}, Анги: {grd}, Сэдэв: {tpc}, Хуудас: {pages}. Сурах бичгийн агуулгыг ашиглан төлөвлөгөө гарга."
                     }
                 ],
-                "temperature": 0.4  # Энэ нь хариултын чанарыг тогтворжуулна
+                "temperature": 0.4
             }
             
-            # 3. Хүсэлт илгээх
+            # API-руу хүсэлт илгээх
             res = requests.post(url, headers=headers, json=payload)
             
-# ... (үргэлжлэл)
-
+# ... (доод талын кодууд)
