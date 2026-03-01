@@ -7,8 +7,8 @@ from io import BytesIO
 # 1. Хуудасны тохиргоо
 st.set_page_config(page_title="Ухаалаг Багшийн Туслах", page_icon="🎓")
 
-st.title("🎓 Ухаалаг Багшийн Туслах")
-st.success("Llama 3.3 шинэ загвар идэвхжлээ.")
+st.title("🎓 Ээлжит хичээлийн төлөвлөлт")
+st.info("Таны ирүүлсэн албан ёсны загварын дагуу AI төлөвлөгөө боловсруулна.")
 
 # 2. Secrets-ээс Groq API Key-ийг унших
 if "GROQ_API_KEY" in st.secrets:
@@ -17,7 +17,7 @@ else:
     st.error("Secrets хэсэгт GROQ_API_KEY-ээ оруулна уу.")
     st.stop()
 
-# 3. AI холболтын функц (Groq - Шинэчилсэн загвар)
+# 3. AI холболтын функц (Llama 3.3)
 def generate_lesson_plan(subject, grade, topic, duration):
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
@@ -25,14 +25,30 @@ def generate_lesson_plan(subject, grade, topic, duration):
         "Content-Type": "application/json"
     }
     
-    prompt = f"Чи бол туршлагатай багш. {subject} хичээлийн {grade}-д орох '{topic}' сэдвээр {duration} минутын хичээлийн төлөвлөгөөг Монгол хэл дээр маш цэгцтэй гаргаж өг."
+    # Загварын дагуу өгөх заавар (Prompt)
+    prompt = f"""
+Чи бол Монгол улсын боловсролын салбарын мэргэжилтэн багш. 
+Дараах мэдээллийн дагуу "ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨЛТ"-ийг боловсруулж өг.
+Мэдээлэл: Хичээл: {subject}, Анги: {grade}, Сэдэв: {topic}, Хугацаа: {duration} минут.
+
+Хариултыг заавал дараах бүтцээр гарга:
+1. Хичээлийн зорилго: (Тодорхой бичих)
+2. Үйл явц (Хүснэгт хэлбэрээр):
+   - Эхлэл хэсэг (хичээлийн зорилго тодорхой болгох, сэдэлжүүлэг, сэргээн санах)
+   - Өрнөл хэсэг (арга, мэдээлэл боловсруулах, задлан шинжлэх, мэдлэг бүтээх)
+   - Төгсгөл хэсэг (ойлголтоо нэгтгэн дүгнэх, үнэлгээ)
+3. Гэрийн даалгавар
+4. Ялгаатай сурагчидтай ажиллах аргачлал
+5. Нэмэлт (багшийн анхаарах зүйлс)
+"""
     
     payload = {
-        "model": "llama-3.3-70b-versatile", # ЭНЭ ХЭСГИЙГ ШИНЭЧИЛЛЭЭ
+        "model": "llama-3.3-70b-versatile",
         "messages": [
-            {"role": "system", "content": "Чи хичээлийн төлөвлөгөө гаргадаг мэргэжилтэн."},
+            {"role": "system", "content": "Чи бол ээлжит хичээлийн төлөвлөлт гаргадаг туслах."},
             {"role": "user", "content": prompt}
-        ]
+        ],
+        "temperature": 0.5
     }
     
     try:
@@ -44,10 +60,10 @@ def generate_lesson_plan(subject, grade, topic, duration):
     except Exception as e:
         return f"❌ Холболтын алдаа: {str(e)}"
 
-# 4. Word файл болгон хөрвүүлэх функц
+# 4. Word файл үүсгэх функц
 def create_docx(text):
     doc = Document()
-    doc.add_heading('Хичээлийн төлөвлөгөө', 0)
+    doc.add_heading('ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨЛТ', 0)
     doc.add_paragraph(text)
     bio = BytesIO()
     doc.save(bio)
@@ -55,24 +71,26 @@ def create_docx(text):
     return bio
 
 # 5. Хэрэглэгчийн интерфейс
-subject = st.selectbox("📚 Хичээл", ["Математик", "Монгол хэл", "Биологи", "Физик", "Хими", "Мэдээлэл зүй"])
-grade = st.selectbox("🏫 Анги", [f"{i}-р анги" for i in range(1, 13)])
-topic = st.text_input("🔍 Хичээлийн сэдэв", placeholder="Жишээ: Энгийн бутархай")
-duration = st.slider("⏱️ Хугацаа (минут)", 20, 90, 40)
+col1, col2 = st.columns(2)
+with col1:
+    subject = st.text_input("📚 Хичээлийн нэр", "Математик")
+    grade = st.selectbox("🏫 Анги", [f"{i}-р анги" for i in range(1, 13)])
+with col2:
+    topic = st.text_input("🔍 Ээлжит хичээлийн сэдэв")
+    duration = st.number_input("⏱️ Хугацаа (минут)", value=40)
 
-if st.button("✨ Хичээл төлөвлөгөө боловсруулах"):
+if st.button("✨ Төлөвлөгөө боловсруулах"):
     if not topic:
         st.warning("⚠️ Сэдвээ оруулна уу.")
     else:
-        with st.spinner("AI төлөвлөгөө боловсруулж байна..."):
+        with st.spinner("Таны ирүүлсэн загварын дагуу боловсруулж байна..."):
             result = generate_lesson_plan(subject, grade, topic, duration)
             st.divider()
             st.markdown(result)
             
-            # Татаж авах хэсэг
             docx_file = create_docx(result)
             st.download_button(
-                label="📥 Төлөвлөгөөг Word хэлбэрээр татах",
+                label="📥 Төлөвлөгөөг Word файлаар татах",
                 data=docx_file,
                 file_name=f"plan_{topic}.docx",
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
