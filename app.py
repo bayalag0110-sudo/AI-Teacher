@@ -1,11 +1,13 @@
 import streamlit as st
 import requests
-import json
 from docx import Document
+from docx.shared import Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from io import BytesIO
+import datetime
 
 # 1. Хуудасны тохиргоо
-st.set_page_config(page_title="Ухаалаг Багшийн Туслах", page_icon="🎓")
+st.set_page_config(page_title="Ухаалаг Багшийн Туслах", page_icon="🎓", layout="wide")
 
 st.title("🎓 Ээлжит хичээлийн төлөвлөлт")
 st.info("Таны ирүүлсэн албан ёсны загварын дагуу AI төлөвлөгөө боловсруулна.")
@@ -18,41 +20,41 @@ else:
     st.stop()
 
 # 3. AI холболтын функц (Llama 3.3)
-def generate_lesson_plan(subject, grade, topic, duration):
+def generate_lesson_plan(subject, grade, topic, duration, date):
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
     
-    # Загварын дагуу өгөх заавар (Prompt)
+    # Загвар файл дахь бүтцийг AI-д зааварчилж байна
     prompt = f"""
 Чи бол Монгол улсын боловсролын салбарын мэргэжилтэн багш. 
 Дараах мэдээллийн дагуу "ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨЛТ"-ийг боловсруулж өг.
-Мэдээлэл: Хичээл: {subject}, Анги: {grade}, Сэдэв: {topic}, Хугацаа: {duration} минут.
+Мэдээлэл: Хичээл: {subject}, Анги: {grade}, Сэдэв: {topic}, Хугацаа: {duration} минут, Огноо: {date}.
 
-Хариултыг заавал дараах бүтцээр гарга:
-1. Хичээлийн зорилго: (Тодорхой бичих)
-2. Үйл явц (Хүснэгт хэлбэрээр):
-   - Эхлэл хэсэг (хичээлийн зорилго тодорхой болгох, сэдэлжүүлэг, сэргээн санах)
-   - Өрнөл хэсэг (арга, мэдээлэл боловсруулах, задлан шинжлэх, мэдлэг бүтээх)
-   - Төгсгөл хэсэг (ойлголтоо нэгтгэн дүгнэх, үнэлгээ)
-3. Гэрийн даалгавар
-4. Ялгаатай сурагчидтай ажиллах аргачлал
-5. Нэмэлт (багшийн анхаарах зүйлс)
+Хариултыг заавал дараах бүтцээр (хүснэгт болон текст) гарга:
+1. Хичээлийн зорилго: (Сурагч юу сурч мэдэх вэ?)
+2. Үйл явц (Хичээлийн үе шат бүрээр):
+   - Эхлэл хэсэг (хичээлийн зорилго тодорхой болгох, сэдэлжүүлэг, сэргээн санах): Хугацаа, Суралцахуйн үйл ажиллагаа, Багшийн дэмжлэг, Хэрэглэгдэхүүн.
+   - Өрнөл хэсэг (арга, мэдээлэл боловсруулах, задлан шинжлэх, мэдлэг бүтээх): Хугацаа, Суралцахуйн үйл ажиллагаа, Багшийн дэмжлэг, Хэрэглэгдэхүүн.
+   - Төгсгөл хэсэг (ойлголтоо нэгтгэн дүгнэх, үнэлгээ): Хугацаа, Суралцахуйн үйл ажиллагаа, Багшийн дэмжлэг, Хэрэглэгдэхүүн.
+3. Гэрийн даалгавар: (Тодорхой дасгал ажил)
+4. Ялгаатай сурагчидтай ажиллах аргачлал: (Дэмжлэг шаардлагатай сурагчдад зориулсан)
+5. Нэмэлт: (Багшийн дүгнэлт, анхаарах зүйлс)
 """
     
     payload = {
         "model": "llama-3.3-70b-versatile",
         "messages": [
-            {"role": "system", "content": "Чи бол ээлжит хичээлийн төлөвлөлт гаргадаг туслах."},
+            {"role": "system", "content": "Чи бол хичээлийн төлөвлөгөө боловсруулдаг мэргэжилтэн."},
             {"role": "user", "content": prompt}
         ],
-        "temperature": 0.5
+        "temperature": 0.6
     }
     
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        response = requests.post(url, headers=headers, json=payload, timeout=40)
         if response.status_code == 200:
             return response.json()['choices'][0]['message']['content']
         else:
@@ -60,38 +62,57 @@ def generate_lesson_plan(subject, grade, topic, duration):
     except Exception as e:
         return f"❌ Холболтын алдаа: {str(e)}"
 
-# 4. Word файл үүсгэх функц
-def create_docx(text):
+# 4. Word файл үүсгэх функц (Загварын дагуу)
+def create_docx(subject, grade, topic, duration, date, content):
     doc = Document()
-    doc.add_heading('ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨЛТ', 0)
-    doc.add_paragraph(text)
+    
+    # БАТЛАВ хэсэг
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    run = p.add_run("БАТЛАВ\nСУРГАЛТЫН МЕНЕЖЕР: .................")
+    run.bold = True
+    
+    # Гарчиг
+    title = doc.add_heading('ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨЛТ', 0)
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    # Үндсэн мэдээлэл
+    doc.add_paragraph(f"Анги: {grade}")
+    doc.add_paragraph(f"Сар, өдөр, хугацаа: {date}, {duration} минут")
+    doc.add_paragraph(f"Ээлжит хичээлийн сэдэв: {topic}")
+    
+    # AI-аас ирсэн контент
+    doc.add_paragraph("\n" + content)
+    
     bio = BytesIO()
     doc.save(bio)
     bio.seek(0)
     return bio
 
 # 5. Хэрэглэгчийн интерфейс
-col1, col2 = st.columns(2)
-with col1:
-    subject = st.text_input("📚 Хичээлийн нэр", "Математик")
-    grade = st.selectbox("🏫 Анги", [f"{i}-р анги" for i in range(1, 13)])
-with col2:
-    topic = st.text_input("🔍 Ээлжит хичээлийн сэдэв")
+with st.sidebar:
+    st.header("⚙️ Тохиргоо")
+    subject = st.text_input("📚 Хичээлийн нэр", "Мэдээлэл зүй")
+    grade = st.selectbox("🏫 Анги", [f"{i}-р анги" for i in range(1, 13)], index=6)
+    date = st.date_input("📅 Огноо", datetime.date.today())
     duration = st.number_input("⏱️ Хугацаа (минут)", value=40)
+
+topic = st.text_input("🔍 Ээлжит хичээлийн сэдэв оруулна уу", placeholder="Жишээ: Энгийн бутархай")
 
 if st.button("✨ Төлөвлөгөө боловсруулах"):
     if not topic:
-        st.warning("⚠️ Сэдвээ оруулна уу.")
+        st.warning("⚠️ Хичээлийн сэдвээ оруулна уу.")
     else:
-        with st.spinner("Таны ирүүлсэн загварын дагуу боловсруулж байна..."):
-            result = generate_lesson_plan(subject, grade, topic, duration)
+        with st.spinner("Таны ирүүлсэн загварын дагуу AI ажиллаж байна..."):
+            result = generate_lesson_plan(subject, grade, topic, duration, date)
             st.divider()
             st.markdown(result)
             
-            docx_file = create_docx(result)
+            # Word татах хэсэг
+            docx_file = create_docx(subject, grade, topic, duration, date, result)
             st.download_button(
                 label="📥 Төлөвлөгөөг Word файлаар татах",
                 data=docx_file,
-                file_name=f"plan_{topic}.docx",
+                file_name=f"Eeljit_Plan_{topic}.docx",
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             )
