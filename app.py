@@ -39,20 +39,18 @@ st.markdown("""
 
     .main-title { text-align: center; color: #1E3A8A; font-weight: 800; text-transform: uppercase; margin: 20px 0; }
 
+    /* Товчлуурын шинэ загвар */
     .stButton>button { 
-        border-radius: 8px; background-image: linear-gradient(to right, #2563eb, #1d4ed8); 
-        color: white; width: 100%; font-weight: bold; transition: 0.3s;
+        border-radius: 12px; background: white; color: #1e3a8a; border: 1px solid #cbd5e1;
+        width: 100%; font-weight: 600; transition: all 0.3s ease; height: 50px;
     }
-    .stButton>button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
-
-    /* Портал картын загвар */
-    .portal-link {
-        display: block; padding: 15px; background: white; border-radius: 10px;
-        text-decoration: none; color: #1e3a8a; font-weight: bold;
-        margin-bottom: 10px; border-left: 5px solid #2563eb;
-        transition: 0.3s; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    .stButton>button:hover { 
+        background: #2563eb; color: white; border-color: #2563eb;
+        transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
     }
-    .portal-link:hover { transform: translateX(10px); background: #f8fafc; }
+    
+    /* Идэвхтэй товчлуур */
+    div[data-testid="stExpander"] { border-radius: 15px; background: white; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -65,7 +63,7 @@ def auth_ui():
         with col2:
             with st.form("login_form"):
                 st.markdown("<h3 style='text-align:center;'>Нэвтрэх</h3>", unsafe_allow_html=True)
-                password = st.text_input("Нууц үг (admin1234):", type="password")
+                password = st.text_input("Нууц үг:", type="password")
                 if st.form_submit_button("Системд нэвтрэх"):
                     if password == "admin1234":
                         st.session_state.authenticated = True
@@ -84,7 +82,7 @@ if auth_ui():
             st.session_state.authenticated = False
             st.rerun()
         st.divider()
-        menu = st.radio("ҮНДСЭН ЦЭС", ["💎 Төлөвлөгч", "📊 Миний Анализ", "🌍 Портал"])
+        menu = st.radio("ҮНДСЭН ЦЭС", ["💎 Төлөвлөгч", "📊 Миний Анализ", "🌍 Портал"], index=2)
 
     # --- 1. ТӨЛӨВЛӨГЧ ---
     if menu == "💎 Төлөвлөгч":
@@ -107,12 +105,10 @@ if auth_ui():
                                 st.session_state.current_view = res.json()['choices'][0]['message']['content']
                                 st.session_state.history.append({"topic": tpc, "grd": grd, "date": str(datetime.date.today())})
                                 st.rerun()
-
         with col_out:
             if 'current_view' in st.session_state:
                 st.markdown("<div class='approval-box'>БАТЛАВ<br>СУРГАЛТЫН МЕНЕЖЕР ................... Б. НАМУУН</div>", unsafe_allow_html=True)
                 st.markdown(st.session_state.current_view)
-            else: st.info("👈 Мэдээллээ оруулна уу.")
 
     # --- 2. АНАЛИЗ ---
     elif menu == "📊 Миний Анализ":
@@ -122,26 +118,22 @@ if auth_ui():
             st.plotly_chart(px.bar(df['grd'].value_counts(), title="Ангиарх хуваарилалт"))
         else: st.info("Түүх байхгүй байна.")
 
-    # --- 3. ПОРТАЛ (ШИНЭЧЛЭГДСЭН) ---
+    # --- 3. ПОРТАЛ (ЭМХ ЦЭГЦТЭЙ ШИНЭ ХУВИЛБАР) ---
     elif menu == "🌍 Портал":
-        st.markdown("<h2 class='main-title'>Боловсролын портал сайтууд</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 class='main-title'>Боловсролын нэгдсэн порталууд</h2>", unsafe_allow_html=True)
         
+        # Портал сайтуудын жагсаалт
         portals = {
-            "📚 E-Content (Сурах бичиг)": "https://econtent.edu.mn/book",
-            "💻 Medle.mn (Цахим сургалт)": "https://medle.mn/",
-            "📊 EduMap (Боловсролын статистик)": "https://edumap.mn/",
-            "👨‍🏫 Bagsh.edu.mn (Багшийн хөгжил)": "https://bagsh.edu.mn/"
+            "📚 E-Content": "https://econtent.edu.mn/book",
+            "💻 Medle.mn": "https://medle.mn/",
+            "📊 EduMap": "https://edumap.mn/",
+            "👨‍🏫 Bagsh.edu.mn": "https://bagsh.edu.mn/"
         }
 
-        col_list, col_view = st.columns([1, 2.5])
+        # Tabs ашиглан сайтуудыг эмх цэгцтэй харуулах
+        tabs = st.tabs(list(portals.keys()))
 
-        with col_list:
-            st.subheader("Сайт сонгох")
-            for name, url in portals.items():
-                if st.button(name):
-                    st.session_state.active_portal = url
-        
-        with col_view:
-            target_url = st.session_state.get('active_portal', "https://econtent.edu.mn/book")
-            st.markdown(f"**Одоо үзэж буй:** {target_url}")
-            components.iframe(target_url, height=800, scrolling=True)
+        for i, (name, url) in enumerate(portals.items()):
+            with tabs[i]:
+                st.markdown(f"📍 **Шууд холбоос:** [{url}]({url})")
+                components.iframe(url, height=800, scrolling=True)
