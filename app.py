@@ -114,7 +114,7 @@ if auth_ui():
     # --- SIDEBAR ---
     with st.sidebar:
         st.markdown(f"### ✨ Сайн байна уу, {st.session_state.username}")
-        if st.button("🚪 Гарах", size="small"):
+       
             st.session_state.authenticated = False
             st.rerun()
         
@@ -213,3 +213,4 @@ if auth_ui():
     elif menu == "🌍 Портал":
         choice = st.selectbox("Платформ сонгох", list(portals.keys()))
         st.components.v1.iframe(portals[choice], height=800, scrolling=True)
+
