@@ -64,7 +64,7 @@ with tab1:
         tpc = st.text_input("Хичээлийн сэдэв", placeholder="Сэдвээ оруулна уу...")
         pages = st.text_input("Сурах бичгийн хуудас", placeholder="Жишээ: 20-22")
         
-        if st.button("🚀 Оновчтой төлөвлөгөө гаргах"):
+        if st.button("🚀 Төлөвлөгөө боловсруулах"):
             if tpc:
                 with st.spinner("AI мэргэжлийн түвшинд шинжилж байна..."):
                     url = "https://api.groq.com/openai/v1/chat/completions"
@@ -76,7 +76,7 @@ with tab1:
                             {"role": "system", "content": SYSTEM_INSTRUCTION},
                             {"role": "user", "content": f"Хичээл: {sub}, Анги: {grd}, Сэдэв: {tpc}, Хуудас: {pages}. Сурах бичгийн агуулгаар 70/30 харьцаатай төлөвлөгөө гарга."}
                         ],
-                        "temperature": 0.35 # Чанарыг улам тогтвортой болгосон
+                        "temperature": 0.1 # Чанарыг улам тогтвортой болгосон
                     }
                     
                     res = requests.post(url, headers=headers, json=payload)
@@ -116,3 +116,4 @@ with tab2:
     with p_tabs[0]: st.components.v1.iframe("https://edumap.mn/", height=800)
     with p_tabs[1]: st.components.v1.iframe("https://bagsh.esis.edu.mn/", height=800)
     with p_tabs[2]: st.components.v1.iframe("https://medle.mn/", height=800)
+
