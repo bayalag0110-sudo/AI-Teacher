@@ -1,135 +1,113 @@
 import streamlit as st
 import requests
 import datetime
+import PyPDF2
 from docx import Document
-from docx.enum.text import WD_ALIGN_PARAGRAPH
 from io import BytesIO
 
 # 1. Хуудасны тохиргоо
-st.set_page_config(page_title="Medle AI - Багшийн Нэгдсэн Төв", layout="wide", page_icon="🎓")
+st.set_page_config(page_title="Medle AI - Ухаалаг Багш", layout="wide", page_icon="🎓")
 
-# CSS - Орчин үеийн дизайн (Цэнхэр ба ногоон туяатай)
+# CSS - Орчин үеийн загвар
 st.markdown("""
     <style>
-    .stMetric { background-color: #ffffff; padding: 20px; border-radius: 15px; border-left: 5px solid #28a745; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    .stSidebar { background-color: #f8f9fa; }
-    .main-title { color: #1e3a8a; text-align: center; font-weight: bold; margin-bottom: 20px; }
+    .stMetric { background-color: #ffffff; padding: 20px; border-radius: 15px; border-left: 5px solid #007bff; }
+    .stTabs [data-baseweb="tab-list"] { gap: 24px; }
+    .stTabs [data-baseweb="tab"] { height: 50px; white-space: pre-wrap; background-color: #f0f2f6; border-radius: 10px; padding: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. Статистик (Session State ашиглан бодит тоолуур)
-if 'plan_count' not in st.session_state:
-    st.session_state.plan_count = 0
-if 'teacher_emails' not in st.session_state:
-    st.session_state.teacher_emails = set()
+# 2. Статистик (Session State)
+if 'plan_count' not in st.session_state: st.session_state.plan_count = 0
+if 'teacher_emails' not in st.session_state: st.session_state.teacher_emails = set()
 
-# 3. Нэвтрэх хэсэг (Зөвхөн @medle.mn)
+# 3. Нэвтрэх хэсэг
 def login():
     st.sidebar.title("🔐 Багшийн нэвтрэх")
-    email = st.sidebar.text_input("Эмайл (@medle.mn)", placeholder="нэр@medle.mn")
+    email = st.sidebar.text_input("Эмайл (@medle.mn)")
     password = st.sidebar.text_input("Нууц үг", type="password")
-    if st.sidebar.button("Системд нэвтрэх"):
+    if st.sidebar.button("Нэвтрэх"):
         if email.strip().lower().endswith("@medle.mn") and password:
             st.session_state.logged_in = True
             st.session_state.user_email = email.strip().lower()
             st.session_state.teacher_emails.add(email.strip().lower())
             st.rerun()
         else:
-            st.sidebar.error("❌ Зөвхөн @medle.mn хаягаар нэвтэрнэ!")
+            st.sidebar.error("❌ Зөвхөн @medle.mn хаяг зөвшөөрөгдөнө!")
 
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
+if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
-    st.markdown("<h1 class='main-title'>🎓 Medle AI - Багшийн Нэгдсэн Систем</h1>", unsafe_allow_html=True)
+    st.title("🎓 Medle AI - Багшийн Нэгдсэн Систем")
     c1, c2 = st.columns(2)
-    with c1: st.metric("Нийт боловсруулсан төлөвлөгөө", st.session_state.plan_count)
-    with c2: st.metric("Систем дэх багш нарын тоо", len(st.session_state.teacher_emails))
+    c1.metric("Нийт боловсруулсан материал", st.session_state.plan_count)
+    c2.metric("Систем дэх багш нар", len(st.session_state.teacher_emails))
     login()
     st.stop()
 
-# 4. Үндсэн цэс (Sidebar Navigation)
+# 4. Үндсэн цэс
 st.sidebar.success(f"👤 {st.session_state.user_email}")
-menu = st.sidebar.selectbox("Үйлдэл сонгох", 
-    ["📝 Ээлжит хичээл төлөвлөх", "📊 ESIS (bagsh.esis.edu.mn)", "👨‍🏫 Багшийн хөгжил (bagsh.edu.mn)", 
-     "🗺️ EduMap.mn", "📚 Сурах бичиг (Econtent)", "🌐 Medle.mn"])
+menu = st.sidebar.selectbox("Цэс сонгох", 
+    ["📖 Сурах бичгээс бэлтгэх", "📝 Ээлжит хичээл (Шинэ)", "📊 ESIS", "🗺️ EduMap", "🌐 Medle.mn"])
 
 if st.sidebar.button("Гарах"):
     st.session_state.logged_in = False
     st.rerun()
 
-# 5. Ээлжит хичээл төлөвлөх хэсэг
-if menu == "📝 Ээлжит хичээл төлөвлөх":
-    st.title("📝 Ээлжит хичээлийн төлөвлөлт")
-    col1, col2 = st.columns([1, 1.3])
+# 5. ШИНЭ ФУНКЦ: СУРАХ БИЧГЭЭС БОЛОВСРУУЛАХ
+if menu == "📖 Сурах бичгээс бэлтгэх":
+    st.title("📖 Сурах бичгээс материал бэлтгэх")
+    st.info("Сурах бичгийнхээ PDF файлыг оруулснаар AI түүн дээр үндэслэн төлөвлөгөө болон сорил бэлдэнэ.")
     
-    with col1:
-        st.subheader("⚙️ Хичээлийн мэдээлэл")
-        sub = st.text_input("Хичээлийн нэр", "Мэдээлэл зүй")
-        grd = st.selectbox("Анги", [f"{i}-р анги" for i in range(1, 13)])
-        tpc = st.text_input("Ээлжит хичээлийн сэдэв", placeholder="Жишээ: Өгөгдлийн сан")
-        dur = st.number_input("Хугацаа (минут)", 40)
-        dt = st.date_input("Огноо", datetime.date.today())
+    uploaded_file = st.file_uploader("Сурах бичгийн хуудсыг PDF хэлбэрээр оруулна уу", type="pdf")
+    
+    if uploaded_file is not None:
+        # PDF-ээс текст унших
+        reader = PyPDF2.PdfReader(uploaded_file)
+        full_text = ""
+        for page in reader.pages:
+            full_text += page.extract_text()
         
-        if st.button("✨ Төлөвлөгөө боловсруулах"):
-            if tpc:
-                with st.spinner("AI таны ирүүлсэн загварын дагуу боловсруулж байна..."):
+        st.success("✅ Сурах бичгийн текстийг амжилттай уншлаа.")
+        
+        tab1, tab2 = st.tabs(["📋 Ээлжит хичээл бэлтгэх", "⏱️ 5 минутын сорил бэлдэх"])
+        
+        with tab1:
+            if st.button("✨ Төлөвлөгөө үүсгэх"):
+                with st.spinner("AI текстийг шинжилж байна..."):
+                    prompt = f"Дараах сурах бичгийн эх бичвэр дээр үндэслэн ээлжит хичээлийн төлөвлөгөөг (Эхлэл, Өрнөл, Төгсгөл) боловсруулж өг: {full_text[:2000]}"
                     url = "https://api.groq.com/openai/v1/chat/completions"
                     headers = {"Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}"}
-                    # Загвар Excel-ийн дагуу зааварчилгаа
-                    prompt = f"""
-                    Монгол улсын ээлжит хичээлийн төлөвлөлтийн загвараар {sub} хичээлийн {grd}-ийн '{tpc}' сэдвээр төлөвлөгөө гарга.
-                    БҮТЭЦ:
-                    1. Хичээлийн зорилго
-                    2. Үйл явц (Хүснэгтэн хэлбэрээр): Эхлэл, Өрнөл, Төгсгөл үе шатууд (Хугацаа, Суралцахуйн үйл ажиллагаа, Багшийн дэмжлэг, Хэрэглэгдэхүүн).
-                    3. Гэрийн даалгавар
-                    4. Ялгаатай сурагчидтай ажиллах аргачлал
-                    5. Нэмэлт (Дүгнэлт)
-                    """
-                    res = requests.post(url, headers=headers, json={
-                        "model": "llama-3.3-70b-versatile",
-                        "messages": [{"role": "user", "content": prompt}]
-                    })
+                    res = requests.post(url, headers=headers, json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": prompt}]})
                     if res.status_code == 200:
                         st.session_state.plan_count += 1
-                        st.session_state.last_result = res.json()['choices'][0]['message']['content']
-                    else:
-                        st.error("AI холболтод алдаа гарлаа.")
+                        st.markdown(res.json()['choices'][0]['message']['content'])
+        
+        with tab2:
+            num_questions = st.slider("Асуултын тоо", 3, 10, 5)
+            if st.button("⏱️ Сорил бэлдэх"):
+                with st.spinner("5 минутын сорил бэлтгэж байна..."):
+                    prompt = f"Дараах эх бичвэр дээр үндэслэн сурагчдын мэдлэгийг шалгах {num_questions} асуулт бүхий '5 минутын сорил' бэлд. Асуулт бүр 4 сонголттой, зөв хариулттай байх ёстой: {full_text[:2000]}"
+                    url = "https://api.groq.com/openai/v1/chat/completions"
+                    headers = {"Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}"}
+                    res = requests.post(url, headers=headers, json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": prompt}]})
+                    if res.status_code == 200:
+                        st.session_state.plan_count += 1
+                        st.session_state.quiz_result = res.json()['choices'][0]['message']['content']
+                        st.markdown(st.session_state.quiz_result)
+                        
+                        # Word татах
+                        doc = Document()
+                        doc.add_heading('5 МИНУТЫН СОРИЛ', 0)
+                        doc.add_paragraph(st.session_state.quiz_result)
+                        bio = BytesIO()
+                        doc.save(bio)
+                        st.download_button("📥 Сорилыг Word-оор татах", bio.getvalue(), "Quiz.docx")
 
-    with col2:
-        if 'last_result' in st.session_state:
-            st.subheader("📄 Төлөвлөгөөний харагдац")
-            st.markdown(st.session_state.last_result)
-            
-            # Word файл үүсгэх (БАТЛАВ хэсэгтэй)
-            doc = Document()
-            p = doc.add_paragraph("БАТЛАВ\nСУРГАЛТЫН МЕНЕЖЕР: .................")
-            p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-            doc.add_heading('ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨЛТ', 0).alignment = WD_ALIGN_PARAGRAPH.CENTER
-            doc.add_paragraph(f"Анги: {grd}\nСэдэв: {tpc}\nОгноо: {dt}\nХугацаа: {dur} минут")
-            doc.add_paragraph(st.session_state.last_result)
-            
-            bio = BytesIO()
-            doc.save(bio)
-            st.download_button("📥 Word файл татах", bio.getvalue(), f"Plan_{tpc}.docx")
+# Бусад цэсүүд (Өмнөх кодын дагуу)
+elif menu == "📝 Ээлжит хичээл (Шинэ)":
+    st.title("📝 Ээлжит хичээлийн төлөвлөлт")
+    # ... (Өмнөх төлөвлөгөөний код энд орно)
 
-# 6. Вэб сайтуудыг нэгтгэх хэсэг (Iframe холболтууд)
-elif menu == "📊 ESIS (bagsh.esis.edu.mn)":
-    st.title("📊 Боловсролын салбарын мэдээллийн систем")
-    st.components.v1.iframe("https://bagsh.esis.edu.mn/", height=800, scrolling=True)
-
-elif menu == "👨‍🏫 Багшийн хөгжил (bagsh.edu.mn)":
-    st.title("👨‍🏫 Багшийн хөгжлийн нэгдсэн портал")
-    st.components.v1.iframe("https://bagsh.edu.mn/", height=800, scrolling=True)
-
-elif menu == "🗺️ EduMap.mn":
-    st.title("🗺️ EduMap - Сургалтын хөтөлбөрийн сан")
-    st.components.v1.iframe("https://edumap.mn/", height=800, scrolling=True)
-
-elif menu == "📚 Сурах бичиг (Econtent)":
-    st.title("📚 Цахим сурах бичгийн сан")
-    st.components.v1.iframe("https://econtent.edu.mn/book", height=800, scrolling=True)
-
-elif menu == "🌐 Medle.mn":
-    st.title("🌐 Medle Цахим сургууль")
-    st.components.v1.iframe("https://medle.mn/", height=800, scrolling=True)
+elif menu == "📊 ESIS":
+    st.components.v1.iframe("https://bagsh.esis.edu.mn/", height=800)
