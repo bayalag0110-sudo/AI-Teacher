@@ -3,32 +3,51 @@ import requests
 import datetime
 from docx import Document
 from io import BytesIO
-import PyPDF2  # PDF-ээс текст унших сан
+import PyPDF2
 
 # 1. Хуудасны тохиргоо
-st.set_page_config(page_title="Medle AI - PDF Төлөвлөгч", layout="wide", page_icon="📚")
+st.set_page_config(page_title="EduPlan AI - Заах Аргач", layout="wide", page_icon="🎓")
 
-# 2. Session State удирдлага
+# CSS - Портал сайтуудын харагдацыг сайжруулах
+st.markdown("""
+    <style>
+    .portal-link { padding: 10px; border-radius: 5px; background-color: #f0f2f6; border-left: 5px solid #28a745; margin-bottom: 5px; display: block; text-decoration: none; color: #31333F; font-weight: bold; }
+    .portal-link:hover { background-color: #e0e4ea; }
+    iframe { border: 1px solid #ddd; border-radius: 10px; width: 100%; height: 600px; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# 2. Session State - Түүх хадгалах
 if 'history' not in st.session_state: st.session_state.history = []
 if 'current_view' not in st.session_state: st.session_state.current_view = None
 
-# 🌟 ХАТУУ ЗААВАРЧИЛГАА (System Instruction) - ТАНЫ ЗАГВАР ДАГУУ
+# 🌟 ХАТУУ ЗААВАРЧИЛГАА (System Instruction)
 SYSTEM_INSTRUCTION = """
 Чи бол Монгол улсын Боловсролын шинжээч багш. 
-Чиний даалгавар бол зөвхөн хэрэглэгчийн оруулсан PDF ФАЙЛЫН ТЕКСТ-д тулгуурлан 'ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨЛТ.docx' бүтцээр төлөвлөгөө гаргах.
+Чиний даалгавар бол зөвхөн хэрэглэгчийн оруулсан PDF ФАЙЛ-д тулгуурлан 'ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨЛТ.docx' бүтцээр төлөвлөгөө гаргах.
 
 [МӨРДӨХ ХАТУУ ДҮРЭМ]:
 1. TEMPERATURE 0.1: Зөвхөн сурах бичигт байгаа дасгал, даалгавар, мэдээллийг ашигла. Юу ч зохиож болохгүй.
-2. 70/30 ХАРЬЦАА: Сурагчийн идэвхтэй оролцоо 70%, багшийн дэмжлэг 30% байна.
-3. ЗАГВАРЫН БҮТЭЦ:
-   - БАТЛАВ (Баруун дээд талд) СУРГАЛТЫН МЕНЕЖЕР Б. НАМУУН
-   - ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨЛТ (Гарчиг)
-   - Анги, Сар өдөр, Сэдэв, Зорилго (Зөвхөн PDF-ээс)
-   - Үйл явц (Хүснэгтээр: Эхлэл 5 минут, Өрнөл 25 минут, Төгсгөл 10 минут)
-   - Гэрийн даалгавар, Ялгаатай сурагчидтай ажиллах аргачлал, Багшийн дүгнэлт.
+2. 70/30 ХАРЬЦАА: Сурагчийн идэвхтэй оролцоо 70% (унших, дасгал ажиллах), багшийн дэмжлэг 30% байна.
+3. ЗАГВАРЫН БҮТЭЦ (ЯГШТАЛ БАРИМТАЛ):
+   БАТЛАВ                                             СУРГАЛТЫН МЕНЕЖЕР                              Б. НАМУУН
+   ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨГӨӨ
+   Анги:  
+   Сар, өдөр, хугацаа: 
+   Ээлжит хичээлийн сэдэв:  
+   Хичээлийн зорилго:  
+   Үйл явц:
+   | Хичээлийн үе шат | Хугацаа | Суралцахуйн үйл ажиллагаа | Багшийн дэмжлэг | Хэрэглэгдэхүүн |
+   | :--- | :--- | :--- | :--- | :--- |
+   | Эхлэл хэсэг /сэдэлжүүлэг/ | 5 минут | | | |
+   | Өрнөл хэсэг /мэдлэг бүтээх/ | 25 минут | | | |
+   | Төгсгөл хэсэг /дүгнэлт/ | 10 минут | | | |
+   
+   Гэрийн даалгавар:
+   Ялгаатай сурагчидтай ажиллах аргачлал:
+   Нэмэлт: тухайн хичээлийн талаарх багшийн дүгнэлт:
 """
 
-# PDF-ээс текст унших функц
 def extract_text_from_pdf(file):
     pdf_reader = PyPDF2.PdfReader(file)
     text = ""
@@ -37,48 +56,55 @@ def extract_text_from_pdf(file):
         if t: text += t
     return text
 
-# 3. Sidebar - Түүх хадгалах
-st.sidebar.title("🕒 Боловсруулсан түүх")
-if st.sidebar.button("➕ Шинэ төлөвлөгөө"):
-    st.session_state.current_view = None
-    st.rerun()
-
-st.sidebar.markdown("---")
-for idx, item in enumerate(st.session_state.history):
-    if st.sidebar.button(f"📄 {item['topic']}", key=f"h_{idx}"):
-        st.session_state.current_view = item
+# 3. Sidebar - Түүх болон Портал сайтууд
+with st.sidebar:
+    st.title("🎓 Багшийн туслах")
+    
+    st.subheader("🌐 Сургалтын порталууд")
+    portals = {
+        "Econtent (Сурах бичиг)": "https://econtent.edu.mn/book",
+        "Medle.mn (Цахим сургалт)": "https://medle.mn/",
+        "EduMap (Хичээл төлөвлөлт)": "https://edumap.mn/",
+        "ESIS (Багшийн бүртгэл)": "https://bagsh.esis.edu.mn/",
+        "Bagsh.edu.mn (Портал)": "https://bagsh.edu.mn/"
+    }
+    for name, url in portals.items():
+        st.markdown(f'<a href="{url}" target="_blank" class="portal-link">{name}</a>', unsafe_allow_html=True)
+    
+    st.divider()
+    st.subheader("🕒 Төлөвлөгөөний түүх")
+    if st.button("➕ Шинэ төлөвлөгөө"):
+        st.session_state.current_view = None
+        st.rerun()
+    
+    for idx, item in enumerate(st.session_state.history):
+        if st.sidebar.button(f"📄 {item['topic']} ({item['time']})", key=f"h_{idx}"):
+            st.session_state.current_view = item
 
 # 4. Үндсэн цонх
-st.title("👨‍🏫 PDF Сурах бичгээс ээлжит хичээл төлөвлөх")
+st.title("👨‍🏫 Ээлжит хичээл боловсруулах систем")
 
 col_in, col_out = st.columns([1, 1.2])
 
 with col_in:
-    st.subheader("📁 PDF файл оруулах")
-    uploaded_pdf = st.file_uploader("Сурах бичгийн PDF файлаа (хуудсаа) оруулна уу", type="pdf")
-    
+    st.subheader("⚙️ Оролтын өгөгдөл")
+    uploaded_file = st.file_uploader("Сурах бичгийн PDF оруулна уу", type="pdf")
     sub = st.text_input("Хичээл", "Мэдээлэл зүй")
     grd = st.text_input("Анги", "6а")
-    tpc = st.text_input("Хичээлийн сэдэв (PDF-ээс хайх)")
+    tpc = st.text_input("Хичээлийн сэдэв")
     
-    if st.button("🚀 PDF-ээс боловсруулах"):
-        if uploaded_pdf and tpc:
-            with st.spinner("PDF-ээс агуулгыг шүүж, чанартай төлөвлөгөө гаргаж байна..."):
-                # 1. Текст ялгах
-                full_text = extract_text_from_pdf(uploaded_pdf)
-                
-                # 2. API хүсэлт
+    if st.button("🚀 Боловсруулах (Temp 0.1)"):
+        if uploaded_file and tpc:
+            with st.spinner("PDF-ээс агуулгыг шүүж, загварын дагуу бэлтгэж байна..."):
+                pdf_text = extract_text_from_pdf(uploaded_file)
                 url = "https://api.groq.com/openai/v1/chat/completions"
                 headers = {"Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}"}
-                
-                # PDF текст хэт том бол эхний 8000 тэмдэгтийг авах (Context limit)
-                context_text = full_text[:8000] 
                 
                 payload = {
                     "model": "llama-3.3-70b-versatile",
                     "messages": [
                         {"role": "system", "content": SYSTEM_INSTRUCTION},
-                        {"role": "user", "content": f"Сурах бичгийн PDF текст: {context_text}\n\nСэдэв: {tpc}\nАнги: {grd}\nХичээл: {sub}"}
+                        {"role": "user", "content": f"PDF Текст: {pdf_text[:8000]}\n\nСэдэв: {tpc}\nАнги: {grd}\nХичээл: {sub}"}
                     ],
                     "temperature": 0.1
                 }
@@ -87,15 +113,13 @@ with col_in:
                 if res.status_code == 200:
                     ans = res.json()['choices'][0]['message']['content']
                     new_item = {
-                        "topic": tpc, 
-                        "content": ans, 
-                        "date": datetime.datetime.now().strftime("%H:%M")
+                        "topic": tpc, "content": ans, 
+                        "time": datetime.datetime.now().strftime("%m/%d %H:%M"),
+                        "sub": sub, "grd": grd
                     }
                     st.session_state.history.append(new_item)
                     st.session_state.current_view = new_item
                     st.rerun()
-        else:
-            st.warning("⚠️ PDF файл болон сэдвийн нэрээ оруулна уу.")
 
 with col_out:
     if st.session_state.current_view:
@@ -103,11 +127,17 @@ with col_out:
         st.subheader(f"📄 {item['topic']}")
         st.markdown(item['content'])
         
-        # Word файл болгож татах
+        # Word татах
         doc = Document()
         doc.add_paragraph(item['content'])
         bio = BytesIO()
         doc.save(bio)
         st.download_button("📥 Word татах", bio.getvalue(), f"{item['topic']}.docx")
     else:
-        st.info("👈 PDF сурах бичгээ оруулж, сэдвээ бичээд 'Боловсруулах' товчийг дарна уу.")
+        st.info("👈 Зүүн талаас PDF-ээ оруулж, сэдвээ бичнэ үү.")
+
+# 5. Порталыг шууд доор нь харах (Сонгосон бол)
+st.divider()
+st.subheader("🌐 Сургалтын портал харах")
+portal_choice = st.selectbox("Портал сонгох:", list(portals.values()))
+st.components.v1.iframe(portal_choice, height=700, scrolling=True)
