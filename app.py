@@ -20,8 +20,8 @@ water_effect_html = """
             animation: wave 12s linear infinite; }
         @keyframes wave { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
     </style>
-    <h1 style="margin:0; font-size: 2.2rem; text-shadow: 2px 2px 8px rgba(0,0,0,0.3);">🌊 EDUPLAN PRO AI</h1>
-    <p style="opacity: 0.9; font-size: 1rem;">Боловсролын нэгдсэн портал ба AI төлөвлөгч</p>
+    <h1 style="margin:0; font-size: 2.2rem; text-shadow: 2px 2px 8px rgba(0,0,0,0.3);"> EDUPLAN PRO AI</h1>
+    <p style="opacity: 0.9; font-size: 1rem;">📚Боловсролын нэгдсэн портал ба AI төлөвлөгч</p>
     <div class="wave"></div>
 </div>
 """
@@ -137,3 +137,4 @@ if auth_ui():
             with tabs[i]:
                 st.markdown(f"📍 **Шууд холбоос:** [{url}]({url})")
                 components.iframe(url, height=800, scrolling=True)
+
