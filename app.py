@@ -3,58 +3,99 @@ import google.generativeai as genai
 from docx import Document
 from io import BytesIO
 
-# 1. API Түлхүүр тохиргоо - v1 тогтвортой хувилбарыг ашиглах
+# 1. СҮҮЛИЙН ҮЕИЙН ТОГТВОРТОЙ ТОХИРГОО
 try:
-    api_key = st.secrets["GOOGLE_API_KEY"]
-    # v1 хувилбар руу хүчээр шилжүүлж, REST ашиглах
+    # Secrets-ээс шинэ түлхүүрийг унших
+    if "GOOGLE_API_KEY" in st.secrets:
+        api_key = st.secrets["GOOGLE_API_KEY"]
+    else:
+        st.error("Streamlit Cloud-ийн Secrets хэсэгт GOOGLE_API_KEY-ээ оруулна уу.")
+        st.stop()
+
+    # REST тээвэрлэлтийг ашиглан 404 алдаанаас сэргийлэх
     genai.configure(api_key=api_key, transport='rest')
     
-    # Моделийн нэрийг хамгийн сүүлийн үеийн тогтвортой хувилбараар солих
-    # 'gemini-1.5-flash-latest' эсвэл ердөө 'gemini-1.5-flash'
-    model = genai.GenerativeModel('models/gemini-1.5-flash')
+    # Хамгийн сүүлийн үеийн тогтвортой моделийг сонгох
+    model = genai.GenerativeModel('gemini-1.5-flash')
 except Exception as e:
     st.error(f"Тохиргооны алдаа: {e}")
     st.stop()
 
-# 2. Вэб хуудасны дизайн
+# 2. ВЭБ САЙТЫН ДИЗАЙН
 st.set_page_config(page_title="Ухаалаг Багшийн Туслах", page_icon="🎓")
+
+st.markdown("""
+    <style>
+    .stButton>button {
+        width: 100%;
+        border-radius: 10px;
+        background-color: #008080;
+        color: white;
+        height: 3em;
+        font-weight: bold;
+    }
+    .main {
+        background-color: #f5f7f9;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# 3. WORD ФАЙЛ ҮҮСГЭХ ФУНКЦ
+def create_word_file(text, subject, topic):
+    doc = Document()
+    doc.add_heading('ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨГӨӨ', 0)
+    doc.add_paragraph(f'📚 Хичээл: {subject}')
+    doc.add_paragraph(f'🔍 Сэдэв: {topic}')
+    doc.add_heading('📝 Төлөвлөгөө:', level=1)
+    doc.add_paragraph(text)
+    
+    bio = BytesIO()
+    doc.save(bio)
+    bio.seek(0)
+    return bio
+
+# 4. ПРОГРАММЫН ҮНДСЭН ХЭСЭГ
 st.title("🎓 Ухаалаг Багшийн Туслах")
-st.write("Хамгийн сүүлийн үеийн Gemini 1.5 Flash загвар ашиглаж байна")
+st.write("Gemini 1.5 Flash - Монгол хэл дээрх хамгийн сүүлийн хувилбар")
 
-# 3. Оруулах хэсэг
-subject = st.selectbox("📚 Хичээл", ["Математик", "Мэдээлэл технологи", "Монгол хэл", "Физик", "Биологи"])
-grade = st.selectbox("🏫 Анги", [f"{i}-р анги" for i in range(1, 13)])
-topic = st.text_input("🔍 Хичээлийн сэдэв")
-duration = st.slider("⏱️ Хугацаа (мин)", 20, 90, 40)
+# Оруулах талбарууд
+col1, col2 = st.columns(2)
+with col1:
+    subject = st.selectbox("📚 Хичээл сонгох", ["Математик", "Мэдээлэл технологи", "Монгол хэл", "Физик", "Биологи", "Хими", "Түүх"])
+    grade = st.selectbox("🏫 Анги", [f"{i}-р анги" for i in range(1, 13)])
+with col2:
+    topic = st.text_input("🔍 Хичээлийн сэдэв", placeholder="Жишээ: Нарны систем")
+    duration = st.slider("⏱️ Хугацаа (минут)", 20, 90, 40)
 
-# 4. Процесс
+# Үр дүн гаргах
 if st.button("✨ Хичээл төлөвлөгөө боловсруулах"):
     if not topic:
         st.warning("⚠️ Хичээлийн сэдвээ оруулна уу!")
     else:
         try:
-            with st.spinner("🛠️ AI төлөвлөгөө боловсруулж байна..."):
-                prompt = f"{subject} хичээлийн {grade}-д орох '{topic}' сэдвээр {duration} минутын хичээлийн төлөвлөгөөг Монгол хэл дээр гаргаж өг."
+            with st.spinner("🛠️ AI төлөвлөгөөг боловсруулж байна..."):
+                # Илүү тодорхой заавар (Prompt)
+                prompt = (f"Чи бол туршлагатай багш. {subject} хичээлийн {grade}-д орох '{topic}' сэдвээр "
+                         f"{duration} минутын хичээлийн төлөвлөгөөг Монгол хэл дээр маш тодорхой, "
+                         f"бүтэцтэйгээр (зорилго, явц, дүгнэлт) гаргаж өг.")
+                
                 response = model.generate_content(prompt)
                 
                 if response.text:
+                    st.markdown("---")
                     st.markdown("### 📝 Боловсруулсан төлөвлөгөө")
                     st.write(response.text)
                     
-                    # Word файл үүсгэх
-                    doc = Document()
-                    doc.add_heading('ХИЧЭЭЛИЙН ТӨЛӨВЛӨГӨӨ', 0)
-                    doc.add_paragraph(response.text)
-                    bio = BytesIO()
-                    doc.save(bio)
-                    bio.seek(0)
-                    
+                    # Word файлаар татах
+                    word_file = create_word_file(response.text, subject, topic)
                     st.download_button(
                         label="💾 Word файлаар татах",
-                        data=bio,
-                        file_name=f"{topic}.docx",
+                        data=word_file,
+                        file_name=f"{topic}_tolovlogo.docx",
                         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     )
+                else:
+                    st.error("AI хариу ирүүлсэнгүй. Дахин оролдоно уу.")
         except Exception as e:
-            st.error(f"AI-тай холбогдоход алдаа гарлаа: {e}")
-            st.info("Таны API Key Монгол улсаас хандахад хязгаарлагдсан байж магадгүй.")
+            st.error(f"Алдаа гарлаа: {e}")
+            st.info("Зөвлөмж: Шинэ API Key-ээ Secrets хэсэгт зөв оруулсан эсэхээ шалгаарай.")
