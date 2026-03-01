@@ -1,15 +1,19 @@
 import streamlit as st
 import google.generativeai as genai
 from docx import Document
-from io import BytesIO
+from io import BytesI
 
-# 1. Gemini AI Тохиргоо
-# ШИНЭ API KEY-ЭЭ ДООРХ ХАШИЛТ ДОТОР ХУУЛЖ НААГААРАЙ
-GOOGLE_API_KEY = "AIzaSyAca_6vZqN9r2Dl5sSehXe2_LmD_uN1nsI"
+# Энэ хэсгийг app.py-ийн эхэнд бичнэ
+import streamlit as st
+import google.generativeai as genai
 
-def setup_model():
-    try:
-        genai.configure(api_key=GOOGLE_API_KEY)
+# API Key-ийг Secrets-ээс унших (Вэб дээр ажиллахад зориулагдсан)
+if "GOOGLE_API_KEY" in st.secrets:
+    api_key = st.secrets["GOOGLE_API_KEY"]
+else:
+    api_key = "ТАНЫ_КОДОН_ДЭЭРХ_KEY" # Локал туршилтад зориулж үлдээж болно
+
+genai.configure(api_key=api_key)
         
         # Python 3.14 дээр 404 алдаанаас сэргийлэх дараалал
         # Эхлээд Flash, болохгүй бол Pro-г туршина
@@ -121,4 +125,5 @@ if st.button("✨ Хичээл төлөвлөгөөг боловсруулах")
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             )
         except Exception as e:
+
             st.error(f"Алдаа гарлаа: {e}")
