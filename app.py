@@ -109,15 +109,7 @@ with tab_main:
             st.download_button("📥 Word татах", bio.getvalue(), f"{item['topic']}.docx")
         else:
             st.info("👈 Мэдээллээ оруулаад 'Чанартай боловсруулах' товчийг дарна уу.")
-
-# --- ПОРТАЛУУДЫН ХЭСЭГ (EduMap нэмэгдсэн) ---
-with tab_portals:
-    p_tab1, p_tab2, p_tab3, p_tab4 = st.tabs(["Econtent", "EduMap", "ESIS", "Medle"])
-    with p_tab1: st.components.v1.iframe("https://econtent.edu.mn/book", height=800)
-    with p_tab2: st.components.v1.iframe("https://edumap.mn/", height=800)
-    with p_tab3: st.components.v1.iframe("https://bagsh.esis.edu.mn/", height=800)
-    with p_tab4: st.components.v1.iframe("https://medle.mn/", height=800)
-     # ... (дээрх кодууд)
+             # ... (дээрх кодууд)
 
 if st.button("✨ Чанартай боловсруулах"):
     if tpc:
@@ -147,3 +139,14 @@ if st.button("✨ Чанартай боловсруулах"):
             res = requests.post(url, headers=headers, json=payload)
             
 # ... (доод талын кодууд)
+
+
+
+# --- ПОРТАЛУУДЫН ХЭСЭГ (EduMap нэмэгдсэн) ---
+with tab_portals:
+    p_tab1, p_tab2, p_tab3, p_tab4 = st.tabs(["Econtent", "EduMap", "ESIS", "Medle"])
+    with p_tab1: st.components.v1.iframe("https://econtent.edu.mn/book", height=800)
+    with p_tab2: st.components.v1.iframe("https://edumap.mn/", height=800)
+    with p_tab3: st.components.v1.iframe("https://bagsh.esis.edu.mn/", height=800)
+    with p_tab4: st.components.v1.iframe("https://medle.mn/", height=800)
+    
