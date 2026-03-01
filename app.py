@@ -21,12 +21,24 @@ SYSTEM_INSTRUCTION = """
 2. 70/30 ХАРЬЦАА: Сурагчийн идэвхтэй оролцоо 70% (текст унших, дасгал ажиллах, хэлэлцэх), багшийн чиглүүлэг 30% байна.
 3. 3 ТҮВШНИЙ ДААЛГАВАР: Хичээлийн төгсгөлд сорилыг Хялбар, Дунд, Хүнд түвшинд ялгаж гарга.
 
-[ЗАГВАРЫН БҮТЭЦ]:
-- БАТЛАВ: Баруун дээд өнцөгт (СУРГАЛТЫН МЕНЕЖЕР Б. НАМУУН)
-- ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨГӨӨ (Гарчиг)
-- ХҮСНЭГТ: | Хичээлийн үе шат | Хугацаа | Суралцахуйн үйл ажиллагаа | Багшийн дэмжлэг | Хэрэрлэгдэхүүн |
-- ҮЕ ШАТ: Эхлэл (5 мин), Өрнөл (25 мин), Төгсгөл (10 мин)
-- ГЭРИЙН ДААЛГАВАР, ЯЛГААТАЙ СУРАГЧИДТАЙ АЖИЛЛАХ АРГАЧЛАЛ, БАГШИЙН ДҮГНЭЛТ.
+[ЗАГВАРЫН БҮТЭЦ - ЯГШТАЛ БАРИМТЛА]:
+БАТЛАВ                                             СУРГАЛТЫН МЕНЕЖЕР                              Б. НАМУУН
+ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨГӨӨ
+Анги:  
+Сар, өдөр, хугацаа: 
+Ээлжит хичээлийн сэдэв:  
+Хичээлийн зорилго:  
+Үйл явц:
+
+| Хичээлийн үе шат | Хугацаа | Суралцахуйн үйл ажиллагаа | Багшийн дэмжлэг | Хэрэглэгдэхүүн |
+| :--- | :--- | :--- | :--- | :--- |
+| Эхлэл хэсэг /сэдэлжүүлэг/ | 5 минут | | | |
+| Өрнөл хэсэг /мэдлэг бүтээх/ | 25 минут | | | |
+| Төгсгөл хэсэг /дүгнэлт/ | 10 минут | | | |
+
+Гэрийн даалгавар:
+Ялгаатай сурагчидтай ажиллах аргачлал:
+Нэмэлт: тухайн хичээлийн талаарх багшийн дүгнэлт:
 """
 
 # 3. Sidebar - Түүх
@@ -46,14 +58,15 @@ with tab1:
     with col_in:
         st.subheader("⚙️ Оролтын мэдээлэл")
         sub = st.text_input("Хичээл", "Мэдээлэл зүй")
+        grd = st.text_input("Анги", "6а")
         tpc = st.text_input("Хичээлийн сэдэв")
         
         # Линкийн хэсэг
-        book_link = st.text_input("🔗 Сурах бичгийн линк (Econtent):", "https://econtent.edu.mn/book")
-        st.caption("AI линк доторх текстийг шууд унших боломжгүй тул доорх цонхонд текстийг хуулж өгнө үү.")
+        book_url = st.text_input("🔗 Сурах бичгийн линк (Econtent эсвэл бусад):", "https://econtent.edu.mn/book")
+        st.caption("AI линк доторх текстийг шууд унших боломжгүй тул 'Порталууд' цэснээс текстийг хуулж доор оруулна уу.")
         
         # Текст хуулах (AI үүн дээр үндэслэн ажиллана)
-        content_text = st.text_area("📖 Линк доторх текстийг энд хуулж оруулна уу:", height=250)
+        content_text = st.text_area("📖 Сурах бичгийн текст (Энд хуулна уу):", height=250)
         
         if st.button("🚀 Чанартай боловсруулах (Temp 0.1)"):
             if tpc and content_text:
@@ -65,16 +78,16 @@ with tab1:
                         "model": "llama-3.3-70b-versatile",
                         "messages": [
                             {"role": "system", "content": SYSTEM_INSTRUCTION},
-                            {"role": "user", "content": f"Сурах бичгийн агуулга: {content_text}\n\nСэдэв: {tpc}\nХичээл: {sub}"}
+                            {"role": "user", "content": f"Сурах бичгийн агуулга: {content_text}\n\nСэдэв: {tpc}\nАнги: {grd}\nХичээл: {sub}"}
                         ],
-                        "temperature": 0.1,
-                        "max_tokens": 4096
+                        "temperature": 0.1, # Хамгийн дээд нарийвчлал
+                        "max_tokens": 4000
                     }
                     
                     res = requests.post(url, headers=headers, json=payload)
                     if res.status_code == 200:
                         ans = res.json()['choices'][0]['message']['content']
-                        new_item = {"date": datetime.datetime.now().strftime("%H:%M"), "topic": tpc, "content": ans}
+                        new_item = {"topic": tpc, "content": ans}
                         st.session_state.history.append(new_item)
                         st.session_state.current_view = new_item
                         st.rerun()
@@ -92,11 +105,11 @@ with tab1:
             doc.save(bio)
             st.download_button("📥 Word татах", bio.getvalue(), f"{item['topic']}.docx")
         else:
-            st.info("👈 Линкээ нээж, текстийг хуулж оруулаад 'Боловсруулах' товчийг дарна уу.")
+            st.info("👈 Линкээс текстийг хуулж оруулаад 'Боловсруулах' товчийг дарна уу.")
 
-# 5. Порталууд (Iframe ашиглан линкийг хажууд нь нээх)
+# 5. Порталууд - Линк оруулахад шууд харагдах хэсэг
 with tab2:
-    if book_link:
-        st.components.v1.iframe(book_link, height=800, scrolling=True)
+    if book_url:
+        st.components.v1.iframe(book_url, height=800, scrolling=True)
     else:
-        st.write("Линк оруулна уу.")
+        st.write("Сурах бичгийн линк оруулна уу.")
