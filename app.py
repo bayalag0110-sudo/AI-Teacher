@@ -48,8 +48,8 @@ water_effect_html = """
 <div class="water-container">
     <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
     <div class="content">
-        <h1>🌊 EDUPLAN PRO AI</h1>
-        <p>Сайхан анимаци ба дизайн</p>
+        <h1> EDUPLAN PRO AI</h1>
+        <p>ЭЭЛЖИТ ХИЧЭЭЛ БОЛОВСРУУЛАХ ВЕБ САЙТАД ТАВТАЙ МОРИЛНО УУ.</p>
     </div>
     <div class="wave"></div><div class="wave"></div><div class="wave"></div>
 </div>
@@ -124,3 +124,4 @@ if auth_ui():
             if 'current_view' in st.session_state:
                 st.markdown("<div class='approval-box'>БАТЛАВ<br>СУРГАЛТЫН МЕНЕЖЕР ................... Б. НАМУУН</div>", unsafe_allow_html=True)
                 st.markdown(st.session_state.current_view)
+
