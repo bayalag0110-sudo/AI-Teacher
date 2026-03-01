@@ -115,8 +115,7 @@ if auth_ui():
     with st.sidebar:
         st.markdown(f"### ✨ Сайн байна уу, {st.session_state.username}")
        
-            st.session_state.authenticated = False
-            st.rerun()
+          
         
         st.divider()
         menu = st.radio("ҮНДСЭН ЦЭС", ["💎 Төлөвлөгч", "📊 Миний Анализ", "🌍 Портал"], label_visibility="collapsed")
@@ -213,4 +212,5 @@ if auth_ui():
     elif menu == "🌍 Портал":
         choice = st.selectbox("Платформ сонгох", list(portals.keys()))
         st.components.v1.iframe(portals[choice], height=800, scrolling=True)
+
 
