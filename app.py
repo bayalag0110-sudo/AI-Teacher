@@ -118,10 +118,10 @@ if auth_ui():
           
         
         st.divider()
-        menu = st.radio("ҮНДСЭН ЦЭС", ["💎 Төлөвлөгч", "📊 Миний Анализ", "🌍 Портал"], label_visibility="collapsed")
+        menu = st.radio("ҮНДСЭН ЦЭС", ["💎 Төлөвлөгч", "📊 Миний үүсгэсэн ээлжит", "🌍 Сургалтын сайтууд"], label_visibility="collapsed")
         
         st.divider()
-        st.subheader("🌐 Хурдан холбоос")
+        st.subheader("🌐 Холбоос дээр дараад нэвтэрнэ үү")
         portals = {
             "📚 Econtent": "https://econtent.edu.mn/book",
             "💻 Medle.mn": "https://medle.mn/",
@@ -212,5 +212,6 @@ if auth_ui():
     elif menu == "🌍 Портал":
         choice = st.selectbox("Платформ сонгох", list(portals.keys()))
         st.components.v1.iframe(portals[choice], height=800, scrolling=True)
+
 
 
