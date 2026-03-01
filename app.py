@@ -8,120 +8,57 @@ import PyPDF2
 import plotly.express as px
 
 # 1. Хуудасны үндсэн тохиргоо
-st.set_page_config(page_title="EduPlan Pro AI", layout="wide", page_icon="💡")
+st.set_page_config(page_title="EduPlan Pro AI", layout="wide", page_icon="🎓")
 
-# --- CUSTOM CSS (Загваржуулалт) ---
+# --- CUSTOM CSS ---
 st.markdown("""
     <style>
-    /* Үндсэн фонт болон арын дэвсгэр */
     .main { background-color: #f8f9fa; }
-    
-    /* Sidebar загвар */
-    section[data-testid="stSidebar"] {
-        background-color: #ffffff !important;
-        border-right: 1px solid #e0e0e0;
-    }
-    
-    /* Карт болон контейнер */
-    .st-emotion-cache-12w0qpk { 
-        padding: 1.5rem; 
-        border-radius: 15px; 
-        background: white; 
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    }
-    
-    /* Батлах хэсгийн загвар (Загвар.docx-оос) */
-    .approval-box {
-        text-align: right;
-        font-family: 'Times New Roman', serif;
-        margin-bottom: 30px;
-        line-height: 1.2;
-    }
-
-    /* Гарчиг */
-    .main-title {
-        text-align: center;
-        color: #1E3A8A;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        margin: 20px 0;
-    }
-
-    /* Портал холбоосууд */
-    .portal-card {
-        padding: 12px;
-        border-radius: 10px;
-        background: #f1f5f9;
-        border-left: 5px solid #3b82f6;
-        margin-bottom: 10px;
-        transition: all 0.3s ease;
-        text-decoration: none;
-        display: block;
-        color: #1e293b;
-    }
-    .portal-card:hover {
-        background: #e2e8f0;
-        transform: translateX(5px);
-    }
-    
-    /* Товчлуур */
-    .stButton>button {
-        border-radius: 8px;
-        background-image: linear-gradient(to right, #2563eb, #1d4ed8);
-        color: white;
-        font-weight: 600;
-        border: none;
-        transition: 0.3s;
-    }
+    section[data-testid="stSidebar"] { background-color: #ffffff !important; border-right: 1px solid #e0e0e0; }
+    .approval-box { text-align: right; font-family: 'Times New Roman', serif; margin-bottom: 20px; line-height: 1.2; font-weight: bold; }
+    .main-title { text-align: center; color: #1E3A8A; font-weight: 800; text-transform: uppercase; margin: 20px 0; }
+    .portal-card { padding: 10px; border-radius: 8px; background: #f1f5f9; border-left: 5px solid #3b82f6; margin-bottom: 8px; text-decoration: none; display: block; color: #1e293b; font-weight: bold; }
+    .stButton>button { border-radius: 8px; background-image: linear-gradient(to right, #2563eb, #1d4ed8); color: white; width: 100%; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- USER DB & AUTH ---
-if 'user_db' not in st.session_state:
-    st.session_state.user_db = {"admin": "admin123"}
-
+# --- НЭВТРЭХ ХЭСЭГ (PASSWORD: admin1234) ---
 def auth_ui():
-    if "authenticated" not in st.session_state: st.session_state.authenticated = False
+    if "authenticated" not in st.session_state: 
+        st.session_state.authenticated = False
     
     if not st.session_state.authenticated:
         st.markdown("<h1 class='main-title'>EDUPLAN PRO AI</h1>", unsafe_allow_html=True)
         col1, col2, col3 = st.columns([1, 1.5, 1])
         with col2:
-            tab1, tab2 = st.tabs(["🔑 Нэвтрэх", "📝 Бүртгүүлэх"])
-            with tab1:
-                u = st.text_input("Хэрэглэгчийн нэр", key="l_u")
-                p = st.text_input("Нууц үг", type="password", key="l_p")
-                if st.button("Нэвтрэх", use_container_width=True):
-                    if u in st.session_state.user_db and st.session_state.user_db[u] == p:
-                        st.session_state.authenticated = True
-                        st.session_state.username = u
-                        st.rerun()
-                    else: st.error("Буруу байна")
-            with tab2:
-                nu = st.text_input("Шинэ нэр", key="s_u")
-                np = st.text_input("Шинэ нууц үг", type="password", key="s_p")
-                if st.button("Бүртгүүлэх", use_container_width=True):
-                    if nu and np:
-                        st.session_state.user_db[nu] = np
-                        st.success("Бүртгэгдлээ!")
+            st.info("🔐 Системд нэвтрэх")
+            password = st.text_input("Нууц үгээ оруулна уу:", type="password")
+            if st.button("Нэвтрэх"):
+                # Таны хүссэн нууц үг: admin1234
+                if password == "admin1234":
+                    st.session_state.authenticated = True
+                    st.rerun()
+                else:
+                    st.error("❌ Нууц үг буруу байна!")
         return False
     return True
 
 if auth_ui():
-    if 'history' not in st.session_state: st.session_state.history = []
+    if 'history' not in st.session_state: 
+        st.session_state.history = []
 
     # --- SIDEBAR ---
     with st.sidebar:
-        st.markdown(f"### ✨ Сайн байна уу, {st.session_state.username}")
-       
-          
+        st.markdown("### ✨ Сайн байна уу, Багшаа")
+        if st.button("🚪 Гарах"):
+            st.session_state.authenticated = False
+            st.rerun()
         
         st.divider()
-        menu = st.radio("ҮНДСЭН ЦЭС", ["💎 Төлөвлөгч", "📊 Миний үүсгэсэн ээлжит", "🌍 Сургалтын сайтууд"], label_visibility="collapsed")
+        menu = st.radio("ҮНДСЭН ЦЭС", ["💎 Төлөвлөгч", "📊 Миний Анализ", "🌍 Портал"])
         
         st.divider()
-        st.subheader("🌐 Холбоос дээр дараад нэвтэрнэ үү")
+        st.subheader("🌐 Хурдан холбоос")
         portals = {
             "📚 Econtent": "https://econtent.edu.mn/book",
             "💻 Medle.mn": "https://medle.mn/",
@@ -133,7 +70,6 @@ if auth_ui():
     # --- 1. ТӨЛӨВЛӨГЧ ХЭСЭГ ---
     if menu == "💎 Төлөвлөгч":
         st.markdown("<h2 class='main-title'>Ээлжит хичээл боловсруулах</h2>", unsafe_allow_html=True)
-        
         col_in, col_out = st.columns([1, 1.3])
         
         with col_in:
@@ -144,19 +80,26 @@ if auth_ui():
                 grd = st.selectbox("Анги", [str(i) for i in range(1, 13)], index=5)
                 tpc = st.text_input("Хичээлийн сэдэв")
                 
-                if st.button("✨ Боловсруулах", use_container_width=True):
+                if st.button("🚀 Боловсруулах"):
                     if file and tpc:
                         with st.spinner("AI агуулгыг шинжилж байна..."):
                             reader = PyPDF2.PdfReader(file)
                             txt = "".join([p.extract_text() for p in reader.pages])
                             
-                            # API Дуудлага (Groq)
                             headers = {"Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}"}
-                            prompt = f"""[БАТЛАВ: СУРГАЛТЫН МЕНЕЖЕР Б. НАМУУН]
-                            Зөвхөн PDF-д тулгуурлан, 70/30 харьцаатай төлөвлөгөө гарга.
-                            Бүтэц: Анги, Сэдэв, Зорилго, Үйл явц (Хүснэгтээр: Эхлэл 5', Өрнөл 25', Төгсгөл 10'), 
-                            Гэрийн даалгавар, Ялгаатай сурагчдын аргачлал, Багшийн дүгнэлт.
-                            PDF Текст: {txt[:7000]}"""
+                            prompt = f"""
+                            Чи бол Монгол улсын Боловсролын шинжээч багш. 
+                            Дараах бүтцээр ээлжит хичээлийн төлөвлөгөөг PDF агуулгад тулгуурлан гарга:
+                            1. БАТЛАВ: СУРГАЛТЫН МЕНЕЖЕР Б. НАМУУН
+                            2. ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨЛТ (Анги, Сэдэв, Зорилго)
+                            3. Үйл явц (Хүснэгтээр):
+                               - Эхлэл (5 мин): Сэдэлжүүлэг
+                               - Өрнөл (25 мин): Мэдлэг бүтээх (Сурагчийн оролцоо 70%)
+                               - Төгсгөл (10 мин): Дүгнэлт
+                            4. Гэрийн даалгавар, Ялгаатай сурагчидтай ажиллах арга, Багшийн дүгнэлт.
+                            PDF Текст: {txt[:7000]}
+                            Сэдэв: {tpc}
+                            """
                             
                             res = requests.post("https://api.groq.com/openai/v1/chat/completions", 
                                               headers=headers, 
@@ -174,44 +117,34 @@ if auth_ui():
         with col_out:
             if 'current_view' in st.session_state:
                 item = st.session_state.current_view
-                # БАТЛАВ хэсгийг харуулах (Загвар.docx-оос)
-                st.markdown("""
-                    <div class='approval-box'>
-                        БАТЛАВ<br>
-                        СУРГАЛТЫН МЕНЕЖЕР ................... Б. НАМУУН
-                    </div>
-                """, unsafe_allow_html=True) [cite: 1, 2]
-                
+                st.markdown("<div class='approval-box'>БАТЛАВ<br>СУРГАЛТЫН МЕНЕЖЕР ................... Б. НАМУУН</div>", unsafe_allow_html=True)
                 st.markdown(f"### {item['topic']}")
                 st.markdown(item['content'])
                 
-                # Word Татах
                 doc = Document()
                 doc.add_paragraph(item['content'])
                 bio = BytesIO()
                 doc.save(bio)
-                st.download_button("📥 Word хэлбэрээр татах", bio.getvalue(), f"{item['topic']}.docx")
+                st.download_button("📥 Word татах", bio.getvalue(), f"{item['topic']}.docx")
+            else:
+                st.info("👈 PDF файлаа оруулж, боловсруулах товчийг дарна уу.")
 
     # --- 2. АНАЛИЗ ХЭСЭГ ---
     elif menu == "📊 Миний Анализ":
-        st.markdown("<h2 class='main-title'>Таны ажлын үзүүлэлт</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 class='main-title'>Ажлын үзүүлэлт</h2>", unsafe_allow_html=True)
         if st.session_state.history:
             df = pd.DataFrame(st.session_state.history)
             c1, c2 = st.columns(2)
             with c1:
                 st.metric("Нийт боловсруулсан", len(df))
-                fig = px.bar(df['grd'].value_counts(), title="Ангиарх хуваарилалт")
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(px.bar(df['grd'].value_counts(), title="Ангиарх хуваарилалт"), use_container_width=True)
             with c2:
                 st.metric("Сүүлийн огноо", df.iloc[-1]['date'])
-                fig2 = px.pie(df, names='grd', hole=0.4, title="Хичээлийн бүтэц")
-                st.plotly_chart(fig2, use_container_width=True)
-        else: st.info("Мэдээлэл байхгүй байна.")
+                st.plotly_chart(px.pie(df, names='grd', hole=0.4, title="Хичээлийн бүтэц"), use_container_width=True)
+        else:
+            st.info("Одоогоор түүх байхгүй байна.")
 
     # --- 3. ПОРТАЛ ХЭСЭГ ---
     elif menu == "🌍 Портал":
         choice = st.selectbox("Платформ сонгох", list(portals.keys()))
         st.components.v1.iframe(portals[choice], height=800, scrolling=True)
-
-
-
