@@ -14,7 +14,47 @@ st.set_page_config(page_title="EduPlan Pro AI", layout="wide", page_icon="🎓")
 st.markdown("""
     <style>
     .main { 
-        background-image: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 50%, #7dd3fc 100%); 
+       <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Mongolian:wght@400;600;700&display=swap');
+    
+    * {
+      font-family: 'Noto Sans Mongolian', sans-serif;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    .task-card {
+      border-left: 4px solid #3b82f6;
+    }
+
+    .task-card.medium {
+      border-left-color: #f59e0b;
+    }
+
+    .task-card.hard {
+      border-left-color: #ef4444;
+    }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+ </head>
+ <body class="h-full">
+  <div class="w-full h-full overflow-auto bg-gradient-to-br from-slate-900 via-indigo-900 to-blue-900">
+   <div class="min-h-full p-6">
+    <!-- Header -->
+    <div class="mb-8">
     }
     section[data-testid="stSidebar"] { 
         background-color: #ffffff !important; 
@@ -135,3 +175,4 @@ if auth_ui():
     elif menu == "🌍 Портал":
         choice = st.selectbox("Платформ сонгох", list(portals.keys()))
         st.components.v1.iframe(portals[choice], height=800, scrolling=True)
+
