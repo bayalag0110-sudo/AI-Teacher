@@ -4,36 +4,42 @@ import datetime
 from docx import Document
 from io import BytesIO
 
-# 1. Хуудасны тохиргоо болон Статистик (Session State ашиглав)
-st.set_page_config(page_title="Багшийн Туслах", layout="wide")
+# 1. Хуудасны тохиргоо болон Статистик
+st.set_page_config(page_title="Medle.mn Багшийн Туслах", layout="wide")
 
 if 'total_plans' not in st.session_state:
-    st.session_state.total_plans = 124  # Жишээ статистик
+    st.session_state.total_plans = 150  # Жишээ статистик
 if 'total_teachers' not in st.session_state:
-    st.session_state.total_teachers = 45 # Жишээ статистик
+    st.session_state.total_teachers = 82 # Жишээ статистик
 
-# 2. Нэвтрэх хэсэг (Login)
+# 2. Нэвтрэх хэсэг (Зөвхөн medle.mn)
 def login():
-    st.sidebar.title("🔐 Нэвтрэх")
-    email = st.sidebar.text_input("Эмайл хаяг")
+    st.sidebar.title("🔐 Багшийн нэвтрэх")
+    email = st.sidebar.text_input("Эмайл хаяг (Жишээ: name@medle.mn)")
     password = st.sidebar.text_input("Нууц үг", type="password")
+    
     if st.sidebar.button("Нэвтрэх"):
-        if email and password: # Бодит системд энд баазтай тулгана
-            st.session_state.logged_in = True
-            st.session_state.user_email = email
-            st.rerun()
+        if email.endswith("@medle.mn"):
+            if password: # Бодит системд нууц үгийг шалгана
+                st.session_state.logged_in = True
+                st.session_state.user_email = email
+                st.rerun()
+            else:
+                st.sidebar.error("Нууц үгээ оруулна уу.")
+        else:
+            st.sidebar.error("Зөвхөн @medle.mn хаягаар нэвтрэх боломжтой!")
 
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
-    st.title("🎓 Ухаалаг Багшийн Туслах Систем")
-    st.info("Үргэлжлүүлэхийн тулд зүүн талын цэсээр нэвтэрнэ үү.")
+    st.title("🎓 Ухаалаг Багшийн Туслах (Medle.mn)")
+    st.warning("⚠️ Энэхүү системд зөвхөн @medle.mn албан ёсны эмайл хаягаар нэвтэрнэ.")
     
-    # Статистик харуулах (Нэвтрээгүй үед ч харагдана)
+    # Статистик харуулах
     col1, col2 = st.columns(2)
     col1.metric("Нийт боловсруулсан хичээл", st.session_state.total_plans)
-    col2.metric("Нийт бүртгэлтэй багш нар", st.session_state.total_teachers)
+    col2.metric("Нийт идэвхтэй багш нар", st.session_state.total_teachers)
     login()
     st.stop()
 
@@ -45,7 +51,7 @@ if st.sidebar.button("Гарах"):
 
 st.title("📝 Ээлжит хичээлийн төлөвлөлт")
 
-# 4. Groq AI функц (Llama 3.3 ашиглав)
+# 4. AI холболт (Llama 3.3)
 def generate_plan(subject, grade, topic, duration):
     if "GROQ_API_KEY" not in st.secrets:
         return "API Key тохируулаагүй байна."
@@ -55,10 +61,10 @@ def generate_plan(subject, grade, topic, duration):
     
     # Таны ирүүлсэн Excel загварын дагуу Prompt
     prompt = f"""
-    Монгол улсын 'ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨЛТ'-ийн загварын дагуу боловсруул.
+    Чи бол Монгол улсын багш. Дараах 'ЭЭЛЖИТ ХИЧЭЭЛИЙН ТӨЛӨВЛӨЛТ'-ийг боловсруул.
     Хичээл: {subject}, Анги: {grade}, Сэдэв: {topic}, Хугацаа: {duration} мин.
     
-    Бүтэц:
+    Бүтэц (Заавал):
     1. Хичээлийн зорилго
     2. Үйл явц (Хүснэгт):
        - Эхлэл хэсэг (сэдэлжүүлэг, сэргээн санах)
@@ -66,7 +72,7 @@ def generate_plan(subject, grade, topic, duration):
        - Төгсгөл хэсэг (дүгнэлт, үнэлгээ)
     3. Гэрийн даалгавар
     4. Ялгаатай сурагчидтай ажиллах аргачлал
-    5. Багшийн дүгнэлт
+    5. Багшийн дүгнэлт /Нэмэлт/
     """
     
     data = {
@@ -74,24 +80,27 @@ def generate_plan(subject, grade, topic, duration):
         "messages": [{"role": "user", "content": prompt}]
     }
     
-    res = requests.post(url, headers=headers, json=data)
-    if res.status_code == 200:
-        st.session_state.total_plans += 1 # Статистик нэмэх
-        return res.json()['choices'][0]['message']['content']
-    return f"Алдаа: {res.text}"
+    try:
+        res = requests.post(url, headers=headers, json=data, timeout=30)
+        if res.status_code == 200:
+            st.session_state.total_plans += 1
+            return res.json()['choices'][0]['message']['content']
+        return f"Алдаа: {res.text}"
+    except Exception as e:
+        return f"Холболтын алдаа: {str(e)}"
 
-# 5. Интерфэйс
+# 5. Хэрэглэгчийн интерфейс
 col_a, col_b = st.columns(2)
 with col_a:
-    sub = st.text_input("Хичээл", "Мэдээлэл зүй")
+    sub = st.text_input("Хичээлийн нэр", "Мэдээлэл зүй")
     grd = st.selectbox("Анги", [f"{i}-р анги" for i in range(1, 13)])
 with col_b:
     tpc = st.text_input("Хичээлийн сэдэв")
-    dur = st.number_input("Хугацаа (мин)", value=40)
+    dur = st.number_input("Хугацаа (минут)", value=40)
 
-if st.button("Төлөвлөгөө боловсруулах"):
+if st.button("✨ Төлөвлөгөө боловсруулах"):
     if tpc:
-        with st.spinner("AI ажиллаж байна..."):
+        with st.spinner("AI боловсруулж байна..."):
             result = generate_plan(sub, grd, tpc, dur)
             st.markdown(result)
             
