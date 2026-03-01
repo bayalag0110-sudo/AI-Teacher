@@ -10,7 +10,7 @@ st.set_page_config(
 st.title("🎓 Ухаалаг Багшийн Туслах")
 st.caption("AI ашиглан хичээлийн төлөвлөгөө үүсгэнэ")
 
-API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
+API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
 def generate_lesson_plan(topic):
     try:
@@ -101,3 +101,4 @@ if generate_btn:
         st.divider()
         st.subheader("📝 Хичээлийн төлөвлөгөө")
         st.markdown(result)
+
