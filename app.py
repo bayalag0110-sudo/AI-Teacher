@@ -77,7 +77,7 @@ if auth_ui():
 
     # --- SIDEBAR ---
     with st.sidebar:
-        st.markdown("### ✨ Сайн байна уу, Багшаа")
+        st.markdown("### 👩🏻‍🏫 Сайн байна уу, Багшаа")
         if st.button("🚪 Системээс гарах"):
             st.session_state.authenticated = False
             st.rerun()
@@ -137,4 +137,5 @@ if auth_ui():
             with tabs[i]:
                 st.markdown(f"📍 **Шууд холбоос:** [{url}]({url})")
                 components.iframe(url, height=800, scrolling=True)
+
 
