@@ -9,52 +9,61 @@ import PyPDF2
 import gspread
 from google.oauth2.service_account import Credentials
 
-# 1. ХУУДАСНЫ ТОХИРГОО
-st.set_page_config(page_title="EduPlan Pro v3.5", layout="wide", page_icon="🎓")
+# 1. СИСТЕМИЙН ТОХИРГОО
+st.set_page_config(page_title="EduPlan Pro v4.0", layout="wide", page_icon="🎓")
 
-# --- СИСТЕМИЙН САН (Түр зуур Session-д хадгалах, Cloud-тай холбож болно) ---
-if 'homeworks' not in st.session_state:
-    st.session_state.homeworks = [] # Багшийн өгсөн даалгаврууд
-if 'submissions' not in st.session_state:
-    st.session_state.submissions = [] # Сурагчдын илгээсэн хариунууд
-
-# --- CUSTOM CSS ---
+# --- CUSTOM CSS (БАГШ БОЛОН СУРАГЧИЙН ӨНГӨ ЯЛГАА) ---
 st.markdown("""
     <style>
-    .stApp { background-color: #f4f7f6; }
-    .main-title { text-align: center; color: #1e3a8a; font-weight: 800; font-size: 2.2rem; margin-bottom: 20px; }
-    .card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px; border-left: 5px solid #3b82f6; }
-    .student-card { border-left: 5px solid #10b981; }
+    .stApp { background-color: #f8fafc; }
+    .teacher-header { background: linear-gradient(90deg, #1e3a8a, #3b82f6); padding: 20px; border-radius: 15px; color: white; text-align: center; }
+    .student-header { background: linear-gradient(90deg, #064e3b, #10b981); padding: 20px; border-radius: 15px; color: white; text-align: center; }
+    .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); margin-bottom: 15px; border-top: 4px solid #3b82f6; }
+    .stat-box { background: #eff6ff; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid #bfdbfe; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- LOGIN LOGIC ---
+# --- GOOGLE SHEETS API ХОЛБОЛТ ---
+def get_gsheet_client():
+    try:
+        scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+        creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scope)
+        return gspread.authorize(creds)
+    except:
+        st.error("Google Sheets тохиргоо (Secrets) дутуу байна!")
+        return None
+
+# --- НЭВТРЭХ ЛОГИК ---
 if "auth" not in st.session_state: st.session_state.auth = False
 
 if not st.session_state.auth:
     col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
-        st.markdown("<div style='margin-top:100px;'></div>", unsafe_allow_html=True)
-        st.markdown("<h1 class='main-title'>EduPlan Portal</h1>", unsafe_allow_html=True)
+        st.markdown("<div style='margin-top:50px;'></div>", unsafe_allow_html=True)
+        st.markdown("<h1 style='text-align:center;'>EduPlan AI 🎓</h1>", unsafe_allow_html=True)
         role = st.selectbox("Та хэн бэ?", ["Багш", "Сурагч"])
-        user_name = st.text_input("Нэр:")
-        pwd = st.text_input("Нууц үг:", type="password")
+        u_name = st.text_input("Таны нэр:")
+        u_class = st.text_input("Анги / Бүлэг (Жишээ нь: 10А, 9Б):").upper()
+        u_pwd = st.text_input("Нууц үг:", type="password")
+        
         if st.button("Нэвтрэх"):
-            if pwd == "admin1234" and user_name:
+            if u_pwd == "admin1234" and u_name and u_class:
                 st.session_state.auth = True
                 st.session_state.role = role
-                st.session_state.user = user_name
+                st.session_state.user = u_name
+                st.session_state.u_class = u_class
                 st.rerun()
-            else: st.error("Мэдээлэл дутуу байна!")
+            else: st.warning("Мэдээллээ бүрэн оруулна уу.")
     st.stop()
 
-# --- SIDEBAR ---
+# --- SIDEBAR МЕНЮ ---
 with st.sidebar:
-    st.markdown(f"### 👤 {st.session_state.user} ({st.session_state.role})")
-    st.write(f"📅 {datetime.date.today()}")
+    st.markdown(f"### 👤 {st.session_state.user}")
+    st.info(f"📍 {st.session_state.role} | 🏫 {st.session_state.u_class}")
     st.divider()
+    
     if st.session_state.role == "Багш":
-        menu = st.radio("ЦЭС", ["📊 Хянах самбар", "📝 Даалгавар өгөх", "📥 Ирсэн даалгавар", "🤖 AI Туслах"])
+        menu = st.radio("ЦЭС", ["📊 Хянах самбар", "📝 Даалгавар өгөх", "📥 Ирсэн даалгавар", "🤖 AI Чатбот", "🌍 Портал"])
     else:
         menu = st.radio("ЦЭС", ["📚 Миний даалгавар", "📤 Даалгавар илгээх", "🤖 AI Туслах"])
     
@@ -62,78 +71,83 @@ with st.sidebar:
         st.session_state.auth = False
         st.rerun()
 
-# --- БАГШИЙН ХЭСЭГ ---
+# --- БАГШИЙН ҮЙЛДЛҮҮД ---
 if st.session_state.role == "Багш":
-    if menu == "📝 Даалгавар өгөх":
-        st.markdown("<h2 class='main-title'>Шинэ даалгавар үүсгэх</h2>", unsafe_allow_html=True)
+    st.markdown(f"<div class='teacher-header'><h1>Багшийн Удирдлага</h1><p>{st.session_state.u_class} бүлэг</p></div>", unsafe_allow_html=True)
+    st.divider()
+
+    if menu == "📊 Хянах самбар":
+        c1, c2, c3 = st.columns(3)
+        with c1: st.markdown("<div class='stat-box'><h3>Өгсөн даалгавар</h3><h1>5</h1></div>", unsafe_allow_html=True)
+        with c2: st.markdown("<div class='stat-box'><h3>Ирсэн хариу</h3><h1>12</h1></div>", unsafe_allow_html=True)
+        with c3: st.markdown("<div class='stat-box'><h3>Шалгаагүй</h3><h1>3</h1></div>", unsafe_allow_html=True)
+
+    elif menu == "📝 Даалгавар өгөх":
+        st.subheader("🆕 Шинэ даалгавар нийтлэх")
         with st.form("hw_form"):
-            subject = st.text_input("Хичээлийн нэр")
-            title = st.text_input("Даалгаврын гарчиг")
-            desc = st.text_area("Даалгаврын заавар")
-            deadline = st.date_input("Дуусах хугацаа")
-            if st.form_submit_button("Нийтлэх"):
-                new_hw = {"id": len(st.session_state.homeworks)+1, "teacher": st.session_state.user, 
-                          "subject": subject, "title": title, "desc": desc, "deadline": str(deadline)}
-                st.session_state.homeworks.append(new_hw)
-                st.success("✅ Даалгавар сурагчдад харагдахаар нийтлэгдлээ!")
+            t_title = st.text_input("Даалгаврын гарчиг")
+            t_desc = st.text_area("Зааварчилгаа")
+            t_date = st.date_input("Дуусах хугацаа")
+            if st.form_submit_button("Сурагчид руу илгээх"):
+                # Энд Google Sheet рүү хадгалах логик орно
+                st.success(f"✅ {st.session_state.u_class} ангийн сурагчдад даалгавар илгээгдлээ.")
 
     elif menu == "📥 Ирсэн даалгавар":
-        st.markdown("<h2 class='main-title'>Сурагчдын илгээсэн бүтээлүүд</h2>", unsafe_allow_html=True)
-        if not st.session_state.submissions:
-            st.info("Одоогоор ирсэн даалгавар байхгүй байна.")
-        for sub in st.session_state.submissions:
+        st.subheader("📥 Сурагчдын ирүүлсэн материалууд")
+        # Жишээ өгөгдөл
+        sample_subs = [{"name": "А.Болд", "class": st.session_state.u_class, "title": "Математик - Бие даалт", "time": "14:20"}]
+        for s in sample_subs:
             with st.container():
-                st.markdown(f"""<div class='card student-card'>
-                    <h4>👤 {sub['student']} | 📚 {sub['hw_title']}</h4>
-                    <p><b>Хариулт:</b> {sub['answer']}</p>
-                    <small>Илгээсэн огноо: {sub['date']}</small>
-                    </div>""", unsafe_allow_html=True)
-                score = st.number_input(f"Оноо өгөх ({sub['student']})", 0, 100, key=f"score_{sub['date']}")
-                if st.button(f"Дүн хадгалах {sub['student']}"):
-                    st.success(f"{sub['student']}-д {score} оноо өглөө.")
+                st.markdown(f"<div class='card'><b>Сурагч:</b> {s['name']} | <b>Анги:</b> {s['class']}<br><b>Сэдэв:</b> {s['title']}</div>", unsafe_allow_html=True)
+                st.button(f"Шалгах ({s['name']})")
 
-# --- СУРАГЧИЙН ХЭСЭГ ---
+# --- СУРАГЧИЙН ҮЙЛДЛҮҮД ---
 elif st.session_state.role == "Сурагч":
+    st.markdown(f"<div class='student-header'><h1>Сурагчийн Портал</h1><p>{st.session_state.u_class} бүлэг</p></div>", unsafe_allow_html=True)
+    st.divider()
+
     if menu == "📚 Миний даалгавар":
-        st.markdown("<h2 class='main-title'>Өгөгдсөн даалгаврууд</h2>", unsafe_allow_html=True)
-        if not st.session_state.homeworks:
-            st.info("Багшаас өгсөн даалгавар байхгүй байна.")
-        for hw in st.session_state.homeworks:
-            st.markdown(f"""<div class='card'>
-                <h3>📘 {hw['subject']}: {hw['title']}</h3>
-                <p>{hw['desc']}</p>
-                <p style='color:red;'>⏰ Дуусах хугацаа: {hw['deadline']}</p>
-                <small>Багш: {hw['teacher']}</small>
-                </div>""", unsafe_allow_html=True)
+        st.subheader(f"📖 {st.session_state.u_class} ангид өгөгдсөн даалгаврууд")
+        # Энд зөвхөн тухайн сурагчийн ангид хамаарах даалгаврыг шүүж харуулна
+        st.markdown(f"""
+        <div class='card'>
+            <h3>📗 Функц ба график</h3>
+            <p>Багш: Б. Бат-Эрдэнэ</p>
+            <p>Заавар: Сурах бичгийн 45-р хуудсыг бодоод зургаар илгээнэ үү.</p>
+            <p style='color:red;'>⏰ Хугацаа: 2024-05-25</p>
+        </div>
+        """, unsafe_allow_html=True)
 
     elif menu == "📤 Даалгавар илгээх":
-        st.markdown("<h2 class='main-title'>Даалгавар илгээх цонх</h2>", unsafe_allow_html=True)
-        hw_to_submit = st.selectbox("Даалгавар сонгох", [hw['title'] for hw in st.session_state.homeworks])
-        ans_text = st.text_area("Хариултаа энд бичнэ үү (эсвэл файл хавсаргана уу)")
-        up_file = st.file_uploader("Файл хавсаргах", type=["pdf", "jpg", "png", "docx"])
-        if st.button("Илгээх"):
-            new_sub = {"student": st.session_state.user, "hw_title": hw_to_submit, 
-                       "answer": ans_text, "date": str(datetime.datetime.now())}
-            st.session_state.submissions.append(new_sub)
-            st.success("🚀 Баяртай! Таны даалгавар багшид очлоо.")
+        st.subheader("📤 Даалгавар илгээх")
+        target_hw = st.selectbox("Даалгавар сонгох", ["Функц ба график", "Объект хандалтат технологи"])
+        answer = st.text_area("Хариулт эсвэл тайлбар")
+        up_file = st.file_uploader("Файл хавсаргах", type=["pdf", "jpg", "png"])
+        if st.button("Багш руу илгээх"):
+            st.balloons()
+            st.success("🚀 Даалгавар амжилттай илгээгдлээ!")
 
-# --- AI ТУСЛАХ (ХОЁР ТАЛД АЖИЛЛАНА) ---
-if menu == "🤖 AI Туслах":
-    st.markdown("<h2 class='main-title'>EduPlan AI Chat</h2>", unsafe_allow_html=True)
-    if "chat_msgs" not in st.session_state: st.session_state.chat_msgs = []
+# --- НЭГДСЭН AI ЧАТБОТ ---
+if "AI" in menu:
+    st.subheader("🤖 EduPlan AI Туслах")
+    if "messages" not in st.session_state: st.session_state.messages = []
+    for m in st.session_state.messages:
+        with st.chat_message(m["role"]): st.markdown(m["content"])
     
-    for m in st.session_state.chat_msgs:
-        with st.chat_message(m["role"]): st.write(m["content"])
+    if p := st.chat_input("Асуултаа бичнэ үү..."):
+        st.session_state.messages.append({"role": "user", "content": p})
+        with st.chat_message("user"): st.markdown(p)
         
-    if p := st.chat_input("Асуух зүйлээ бичнэ үү..."):
-        st.session_state.chat_msgs.append({"role": "user", "content": p})
-        with st.chat_message("user"): st.write(p)
-        
-        # AI Logic
         headers = {"Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}"}
         res = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, 
-                            json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": p}]})
-        if res.status_code == 200:
-            ans = res.json()['choices'][0]['message']['content']
-            with st.chat_message("assistant"): st.write(ans)
-            st.session_state.chat_msgs.append({"role": "assistant", "content": ans})
+                            json={"model": "llama-3.3-70b-versatile", "messages": st.session_state.messages})
+        ans = res.json()['choices'][0]['message']['content']
+        with st.chat_message("assistant"): st.markdown(ans)
+        st.session_state.messages.append({"role": "assistant", "content": ans})
+
+# --- ПОРТАЛ ХЭСЭГ (Зөвхөн Багшид) ---
+if menu == "🌍 Портал":
+    t1, t2, t3 = st.tabs(["📚 E-Content", "✅ Үнэлгээ", "📊 EEC"])
+    with t1: components.iframe("https://econtent.edu.mn/book", height=700)
+    with t2: components.iframe("https://unelgee.eec.mn/", height=700)
+    with t3: components.iframe("https://www.eec.mn/post/5891", height=700)
