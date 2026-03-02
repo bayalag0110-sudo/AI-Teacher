@@ -180,9 +180,9 @@ elif menu == "📝 Тест үүсгэгч":
             st.markdown(st.session_state.last_test)
             st.markdown('</div>', unsafe_allow_html=True)
 
-elif menu == "🌍 Портал":
-    st.markdown("<h1 style='color:#1e3a8a;'>🌍 Боловсролын Порталууд</h1>", unsafe_allow_html=True)
-    tabs = st.tabs(["📚 E-Content", "👨‍🏫 Bagsh.edu.mn", "✅ Unelgee", "📊 EEC"])
+elif menu == "🌍 Боловсролын сайт":
+    st.markdown("<h1 style='color:#1e3a8a;'>🌍 Боловсролын Сайтууд</h1>", unsafe_allow_html=True)
+    tabs = st.tabs(["📚 E-Content", "👨‍🏫 Bagsh.edu.mn", "✅ Unelgee.mn", "📊 Гүйцэтгэлийн үнэлгээний блифпринт"])
     with tabs[0]: components.iframe("https://econtent.edu.mn/book", height=800, scrolling=True)
     with tabs[1]: components.iframe("https://bagsh.edu.mn/", height=800, scrolling=True)
     with tabs[2]: components.iframe("https://unelgee.eec.mn/", height=800, scrolling=True)
