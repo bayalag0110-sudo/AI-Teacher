@@ -148,3 +148,45 @@ elif menu == "📝 Тест үүсгэгч":
         t_tpc = st.text_input("Тестийн сэдэв")
         if st.button("🎯 Тест үүсгэх"):
             if t_file and t_tpc:
+                with st.spinner("Тест бэлдэж байна..."):
+                    reader = PyPDF2.PdfReader(t_file)
+                    t_txt = "".join([reader.pages[i].extract_text() for i in range(ts-1, min(te, len(reader.pages)))])
+                    headers = {"Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}"}
+                    prompt = f"Текст: {t_txt[:6000]}. Сэдэв: {t_tpc}. Тест бэлд."
+                    res = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": prompt}]})
+                    if res.status_code == 200:
+                        content = res.json()['choices'][0]['message']['content']
+                        st.session_state.last_test = content
+                        save_to_cloud("Тест", t_tpc, content)
+                        st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+    with col2:
+        if 'last_test' in st.session_state:
+            st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+            st.markdown(st.session_state.last_test); st.markdown('</div>', unsafe_allow_html=True)
+
+# --- 4. МИНИЙ САН (CLOUD DATA) ---
+elif menu == "📊 Миний сан":
+    st.markdown("<h1 class='main-title'>Миний сан</h1>", unsafe_allow_html=True)
+    ps_id = st.session_state.get('personal_sheet_id', '')
+    if not ps_id:
+        st.warning("⚠️ Sidebar-д Google Sheet ID-гаа оруулна уу.")
+    else:
+        try:
+            client = get_gsheet_client()
+            sheet = client.open_by_key(ps_id).sheet1
+            data = sheet.get_all_records()
+            if not data: st.info("Сан хоосон байна.")
+            for item in reversed(data):
+                with st.expander(f"📅 {item.get('now', 'Огноо')} | {item.get('doc_type', 'Төрөл')}: {item.get('topic', 'Сэдэв')}"):
+                    st.write(item.get('content', 'Хоосон'))
+        except Exception as e: st.error(f"Алдаа: {e}. Sheet-ээ Share хийсэн үү?")
+
+# --- 5. ПОРТАЛ ---
+elif menu == "🌍 Портал":
+    st.markdown("<h1 class='main-title'>Боловсролын порталууд</h1>", unsafe_allow_html=True)
+    t1, t2, t3, t4 = st.tabs(["📚 E-Content", "👨‍🏫 Bagsh.edu.mn", "✅ Үнэлгээ", "📊 EEC Мэдээлэл"])
+    with t1: components.iframe("https://econtent.edu.mn/book", height=800, scrolling=True)
+    with t2: components.iframe("https://bagsh.edu.mn/", height=800, scrolling=True)
+    with t3: components.iframe("https://unelgee.eec.mn/", height=800, scrolling=True)
+    with t4: components.iframe("https://www.eec.mn/post/5891", height=800, scrolling=True)
