@@ -5,3 +5,4 @@ PyPDF2
 plotly
 pandas
 gspread
+openpyxl
