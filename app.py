@@ -185,8 +185,9 @@ elif menu == "🤖 AI Чатбот":
 # --- 5. 🌍 БОЛОВСРОЛ ---
 elif menu == "🌍 Портал":
     st.title("🌍 Боловсролын Сайтууд")
-    sites = {"🗺️ EduMap": "https://edumap.mn/", "🎥 Medle": "https://medle.mn/", "🎮 Eduten": "https://www.eduten.com/", "🇬🇧 Pearson": "https://englishconnect.pearson.com/", "📝 Unelgee": "https://unelgee.eec.mn/auth/login/", "📊 EEC": "https://www.eec.mn/", "https://econtent.edu.mn/"}
+    sites = {"🗺️ EduMap": "https://edumap.mn/", "🎥 Medle": "https://medle.mn/", "🎮 Eduten": "https://www.eduten.com/", "🇬🇧 Pearson": "https://englishconnect.pearson.com/", "📝 Unelgee": "https://unelgee.eec.mn/auth/login/", "📊 EEC": "https://www.eec.mn/", "Econtent": "https://econtent.edu.mn/"}
     t = st.tabs(list(sites.keys()))
     for i, (name, url) in enumerate(sites.items()):
         with t[i]: components.iframe(url, height=800)
+
 
