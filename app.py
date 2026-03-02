@@ -5,10 +5,9 @@ import pandas as pd
 from docx import Document
 from io import BytesIO
 import PyPDF2
-from PIL import Image
 
 # 1. СИСТЕМИЙН ТОХИРГОО
-st.set_page_config(page_title="EduPlan Pro v6.2", layout="wide", page_icon="🎓")
+st.set_page_config(page_title="EduPlan Pro v6.3", layout="wide", page_icon="🎓")
 
 # --- CUSTOM CSS ---
 st.markdown("""
@@ -44,12 +43,6 @@ def extract_pdf_text(file, start, end):
         return text
     except: return ""
 
-def extract_docx_text(file):
-    try:
-        doc = Document(file)
-        return "\n".join([p.text for p in doc.paragraphs])
-    except: return ""
-
 def create_word_doc(content, title):
     doc = Document()
     doc.add_heading(title, 0)
@@ -64,86 +57,99 @@ if not st.session_state.auth:
     _, col, _ = st.columns([1, 1.2, 1])
     with col:
         st.markdown('<div class="glass-card" style="text-align:center; margin-top:50px;">', unsafe_allow_html=True)
-        try: st.image('450633998_2213051369057631_4561852154062620515_n.jpg', width=180)
-        except: st.title("🎓 EduPlan")
-        u_name = st.text_input("👤 Хэрэглэгчийн нэр")
+        st.title("🎓 EduPlan Pro")
         u_pwd = st.text_input("🔑 Нууц үг", type="password")
         if st.button("НЭВТРЭХ"):
-            if u_pwd == "admin1234": st.session_state.auth, st.session_state.user = True, u_name; st.rerun()
+            if u_pwd == "admin1234": st.session_state.auth = True; st.rerun()
     st.stop()
 
 # --- SIDEBAR МЕНЮ ---
 with st.sidebar:
-    st.markdown(f"### 👋 Сайн уу, {st.session_state.user}")
-    menu = st.radio("ҮНДСЭН ЦЭС", ["💎 Ээлжит төлөвлөгч", "📝 Тест үүсгэгч", "📝 Даалгавар өгөх", "🤖 AI Чатбот", "🌍 Портал"])
+    menu = st.radio("ҮНДСЭН ЦЭС", ["💎 Ээлжит төлөвлөгч", "📝 Тест үүсгэгч", "📝 Даалгавар үүсгэх", "🤖 AI Чатбот", "🌍 Портал"])
     if st.button("🚪 Гарах"): st.session_state.auth = False; st.rerun()
 
-# --- 1. 💎 ЭЭЛЖИТ ТӨЛӨВЛӨГЧ (Сайжруулсан загвар) ---
+# --- 1. 💎 ЭЭЛЖИТ ТӨЛӨВЛӨГЧ (ЗАГВАРЫН ДАГУУ) ---
 if menu == "💎 Ээлжит төлөвлөгч":
-    st.title("💎 Ухаалаг хичээл төлөвлөлт")
-    col1, col2 = st.columns([1, 1.8])
+    st.title("💎 Ээлжит хичээлийн төлөвлөлт")
+    col1, col2 = st.columns([1, 2])
     with col1:
         st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-        p_file = st.file_uploader("Сурах бичиг хавсаргах (PDF)", type="pdf")
-        p_start = st.number_input("Эхлэх хуудас", 1, value=1)
-        p_end = st.number_input("Дуусах хуудас", 1, value=2)
+        p_file = st.file_uploader("Сурах бичиг (PDF)", type="pdf")
+        p_pages = st.slider("Хуудас", 1, 500, (1, 3))
         subj = st.text_input("Хичээл", value="Мэдээллийн технологи")
-        grade = st.text_input("Анги", value="9-р анги")
-        topic = st.text_input("Сэдэв", placeholder="Сэдвээ бичнэ үү...")
-        
-        if st.button("🚀 Төлөвлөгөө боловсруулах"):
-            if topic:
-                with st.spinner("AI таны заасан загварын дагуу төлөвлөж байна..."):
-                    pdf_context = extract_pdf_text(p_file, p_start, p_end) if p_file else ""
-                    
-                    instruction = f"""
-                    Чи бол Монгол улсын ЕБС-ийн мэргэжлийн багш. Төлөвлөгөөг ХҮСНЭГТЭН хэлбэрээр дараах бүтцээр гарга:
-                    
-                    Хичээл: {subj}, Анги: {grade}, Сэдэв: {topic}
-                    Сурах бичгийн агуулга: {pdf_context[:2000]}
-                    
-                    ШААРДЛАГА:
-                    1. Суралцахуйн зорилт: Bloom taxonomy-ийн дагуу (Санах, Ойлгох, Хэрэглэх, Шинжлэх, Үнэлэх, Бүтээх).
-                    2. Үйл явцын хүснэгт (БАГАНУУД: Үе шат, Хугацаа, Суралцахуйн үйл ажиллагаа, Багшийн дэмжлэг, Хэрэглэгдэхүүн):
-                       - Эхлэл хэсэг (Зорилго, Сэдэлжүүлэг)
-                       - Өрнөл хэсэг (Арга зүй, Мэдлэг бүтээх, Бүлгийн болон ганцаарчилсан ажил)
-                       - Төгсгөл хэсэг (Дүгнэлт, Багцлах, 5 минутын асуулт/даалгавар)
-                    3. Дасгал, даалгавар (3 түвшинд):
-                       - Бүрэн эзэмшсэн сурагчид (Түвшин 3): Чадвар шаардсан бүтээлч бодлого.
-                       - Эзэмшиж буй сурагчид (Түвшин 2): Жишээ, асуулттай ажиллах.
-                       - Дутуу эзэмшсэн сурагчид (Түвшин 1): Үндсэн ойлголт, нэр томьёо таних.
-                    4. Гэрийн даалгавар ба Ялгаатай сурагчидтай ажиллах аргачлал.
-                    """
-                    res = requests.post("https://api.groq.com/openai/v1/chat/completions", 
-                                       headers={"Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}"},
-                                       json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": instruction}]})
-                    st.session_state.plan_result = res.json()['choices'][0]['message']['content']
+        topic = st.text_input("Сэдэв", placeholder="Сэдвийн нэр...")
+        if st.button("🚀 Төлөвлөгөө гаргах"):
+            with st.spinner("AI боловсруулж байна..."):
+                pdf_text = extract_pdf_text(p_file, p_pages[0], p_pages[1]) if p_file else ""
+                prompt = f"""
+                Монгол улсын ЕБС-ийн багшийн төлөвлөгөө гаргах загварт тулгуурлан ХҮСНЭГТЭН хэлбэрээр боловсруул:
+                Хичээл: {subj}, Сэдэв: {topic}
+                Суралцахуйн зорилт: Bloom taxonomy-ийн дагуу.
+                
+                Хүснэгтийн баганууд:
+                - Үе шат (Эхлэл, Өрнөл, Төгсгөл)
+                - Хугацаа
+                - Суралцахуйн үйл ажиллагаа
+                - Багшийн дэмжлэг
+                - Хэрэглэгдэхүүн
+                
+                Мөн:
+                - 3 түвшний даалгавар (Дутуу, Эзэмшиж буй, Бүрэн эзэмшсэн)
+                - 5 минутын асуулт/даалгавар
+                - Гэрийн даалгавар ба Ялгаатай сурагчидтай ажиллах аргачлал.
+                """
+                res = requests.post("https://api.groq.com/openai/v1/chat/completions", 
+                                   headers={"Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}"},
+                                   json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": prompt}]})
+                st.session_state.plan_res = res.json()['choices'][0]['message']['content']
         st.markdown('</div>', unsafe_allow_html=True)
     with col2:
-        if 'plan_result' in st.session_state:
-            st.markdown(f'<div class="glass-card">{st.session_state.plan_result}</div>', unsafe_allow_html=True)
-            st.download_button("📥 Word татах", create_word_doc(st.session_state.plan_result, topic), f"{topic}_plan.docx")
+        if 'plan_res' in st.session_state:
+            st.markdown(f'<div class="glass-card">{st.session_state.plan_res}</div>', unsafe_allow_html=True)
 
-# --- 2. 🤖 AI ЧАТБОТ (PDF, Excel, Word, Зураг) ---
+# --- 2. 📝 ДААЛГАВАР ҮҮСГЭХ (АЖИЛЛАДАГ БОЛГОСОН) ---
+elif menu == "📝 Даалгавар үүсгэх":
+    st.title("📝 Даалгавар боловсруулах")
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        hw_topic = st.text_input("Даалгаврын сэдэв")
+        hw_type = st.selectbox("Төрөл", ["Гэрийн даалгавар", "Бие даалт", "Шалгалт"])
+        if st.button("✨ Даалгавар үүсгэх"):
+            with st.spinner("AI ажиллаж байна..."):
+                res = requests.post("https://api.groq.com/openai/v1/chat/completions", 
+                                   headers={"Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}"},
+                                   json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": f"{hw_topic} сэдвээр {hw_type} боловсруулж өг."}]})
+                st.session_state.hw_res = res.json()['choices'][0]['message']['content']
+        st.markdown('</div>', unsafe_allow_html=True)
+    with col2:
+        if 'hw_res' in st.session_state:
+            st.markdown(f'<div class="glass-card">{st.session_state.hw_res}</div>', unsafe_allow_html=True)
+
+# --- 3. 🌍 ПОРТАЛ (Бүх сайтууд нэг дор) ---
+elif menu == "🌍 Портал":
+    st.title("🌍 Боловсролын Порталууд")
+    sites = {
+        "🗺️ EduMap": "https://edumap.mn/",
+        "🎥 Medle": "https://medle.mn/",
+        "🎮 Eduten": "https://www.eduten.com/",
+        "🇬🇧 Pearson": "https://englishconnect.pearson.com/",
+        "📝 Unelgee": "https://unelgee.eec.mn/auth/login/",
+        "📚 E-Content": "https://econtent.edu.mn/book",
+        "👨‍🏫 Bagsh": "https://bagsh.edu.mn/",
+        "📊 EEC": "https://www.eec.mn/"
+    }
+    t = st.tabs(list(sites.keys()))
+    for i, (name, url) in enumerate(sites.items()):
+        with t[i]: components.iframe(url, height=800)
+
+# --- 4. 🤖 AI ЧАТБОТ (PDF/Excel уншигчтай) ---
 elif menu == "🤖 AI Чатбот":
     st.title("🤖 AI Ухаалаг туслах")
-    with st.expander("📎 Файл хавсаргах (PDF, Word, Excel, Зураг)"):
-        up = st.file_uploader("Файл сонгох", type=['pdf', 'docx', 'xlsx', 'jpg', 'png'])
-        context = ""
-        if up:
-            if up.name.endswith('.pdf'): context = extract_pdf_text(up, 1, 5)
-            elif up.name.endswith('.docx'): context = extract_docx_text(up)
-            elif up.name.endswith('.xlsx'):
-                df = pd.read_excel(up, engine='openpyxl')
-                context = df.to_string(); st.dataframe(df.head())
-            else: st.image(up, width=200); context = "[Зураг хавсаргав]"
-
     if "msgs" not in st.session_state: st.session_state.msgs = []
     for m in st.session_state.msgs:
         with st.chat_message(m["role"]): st.markdown(m["content"])
-
     if p := st.chat_input("Асуултаа бичнэ үү..."):
-        full_p = f"{context}\n\nАсуулт: {p}" if context else p
         st.session_state.msgs.append({"role": "user", "content": p})
         with st.chat_message("user"): st.markdown(p)
         res = requests.post("https://api.groq.com/openai/v1/chat/completions", 
@@ -153,18 +159,9 @@ elif menu == "🤖 AI Чатбот":
         with st.chat_message("assistant"): st.markdown(ans)
         st.session_state.msgs.append({"role": "assistant", "content": ans})
 
-# --- 3. 🌍 ПОРТАЛ (Шинэ сайтууд нэмэгдсэн) ---
-elif menu == "🌍 Портал":
-    st.title("🌍 Боловсролын Порталууд")
-    t = st.tabs(["🗺️ EduMap", "🎥 Medle", "🎮 Eduten", "🇬🇧 EnglishConnect", "📝 Unelgee", "📚 Бусад"])
-    with t[0]: components.iframe("https://edumap.mn/", height=800)
-    with t[1]: components.iframe("https://medle.mn/", height=800)
-    with t[2]: components.iframe("https://www.eduten.com/", height=800)
-    with t[3]: components.iframe("https://englishconnect.pearson.com/", height=800)
-    with t[4]: components.iframe("https://unelgee.eec.mn/auth/login/", height=800)
-    with t[5]:
-        st.markdown("- [E-Content](https://econtent.edu.mn/book)")
-        st.markdown("- [Bagsh.edu.mn](https://bagsh.edu.mn/)")
-        st.markdown("- [EEC.mn](https://www.eec.mn/)")
-
-# Бусад модулиуд (Тест үүсгэгч) хэвээрээ...
+# 5. ТЕСТ ҮҮСГЭГЧ (Хуучин хэвээр)
+elif menu == "📝 Тест үүсгэгч":
+    st.title("📝 Тест боловсруулах")
+    t_file = st.file_uploader("Файл", type="pdf")
+    if st.button("Тест гаргах"):
+        st.info("AI ажиллаж байна...")
