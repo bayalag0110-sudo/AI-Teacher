@@ -8,72 +8,72 @@ from io import BytesIO
 import PyPDF2
 
 # 1. СИСТЕМИЙН ТОХИРГОО
-st.set_page_config(page_title="EduPlan Pro v4.7", layout="wide", page_icon="🎓")
+st.set_page_config(page_title="EduPlan Pro v5.0", layout="wide", page_icon="🎓")
 
-# --- CUSTOM CSS (Нэвтрэх хэсэг болон Үндсэн загвар) ---
+# --- CUSTOM CSS (Нүүрэн хэсэг, Лого, Текстийн өнгө) ---
 st.markdown("""
     <style>
-    /* Үндсэн дэвсгэр өнгө */
+    /* Үндсэн дэвсгэр өнгө (Gradient) */
     .stApp {
         background: linear-gradient(135deg, #1e3a8a 0%, #7e22ce 100%);
         background-attachment: fixed;
     }
 
-    /* Нэвтрэх картны загвар (Glassmorphism) */
-    .login-card {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(15px);
-        border-radius: 25px;
-        padding: 45px;
-        box-shadow: 0 20px 45px rgba(0,0,0,0.3);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        margin-top: 50px;
+    /* Нүүрэн хэсгийн текстийг цагаан болгох */
+    h1, h2, h3, p, label, .stMarkdown {
+        color: white !important;
     }
 
-    /* Дотор талын картууд */
+    /* Нэвтрэх карт (Glassmorphism) */
+    .login-card {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        border-radius: 30px;
+        padding: 50px;
+        box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        margin-top: 40px;
+        text-align: center;
+    }
+
+    /* Дотор талын картууд (Текст нь хар байх) */
     .glass-card {
         background: white;
         border-radius: 15px;
         padding: 25px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        border: 1px solid #e2e8f0;
-        margin-bottom: 20px;
         color: #1e293b;
-    }
-
-    /* Гарчиг болон Текст */
-    .main-title {
-        text-align: center;
-        font-weight: 800;
-        font-size: 2.8rem;
-        background: linear-gradient(90deg, #1e40af, #9333ea);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         margin-bottom: 20px;
     }
+    .glass-card h1, .glass-card h2, .glass-card h3, .glass-card p, .glass-card label {
+        color: #1e293b !important;
+    }
 
-    .teacher-header {
-        background: rgba(255, 255, 255, 0.15);
-        padding: 20px;
-        border-radius: 15px;
-        color: white;
-        text-align: center;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        margin-bottom: 25px;
+    /* Input талбарууд */
+    div.stTextInput input {
+        color: black !important;
+        border-radius: 10px;
     }
     
-    /* Товчлуурын загвар */
+    /* Товчлуур */
     .stButton>button {
         width: 100%;
+        background: white;
+        color: #1e3a8a;
+        font-weight: 700;
         border-radius: 12px;
-        font-weight: 600;
-        padding: 10px;
-        transition: 0.3s ease;
+        padding: 12px;
+        border: none;
+        transition: 0.3s;
+    }
+    .stButton>button:hover {
+        background: #f1f5f9;
+        transform: scale(1.02);
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- ФУНКЦҮҮД (Word болон PDF) ---
+# --- ФУНКЦҮҮД ---
 def create_word_doc(content, title):
     doc = Document()
     doc.add_heading(title, 0)
@@ -89,10 +89,17 @@ if not st.session_state.auth:
     c1, login_col, c2 = st.columns([1, 1.4, 1])
     with login_col:
         st.markdown('<div class="login-card">', unsafe_allow_html=True)
-        st.markdown("<h1 class='main-title'>EduPlan Pro</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align:center; color:#475569;'>Боловсролын ухаалаг туслах систем</p>", unsafe_allow_html=True)
         
-        u_role = st.radio("Та хэн бэ?", ["Багш", "Сурагч"], horizontal=True)
+        # Лого байршуулах (Файлын нэр logo.jpg эсвэл logo.png байх ёстой)
+        try:
+            st.image('logo.jpg', width=180)
+        except:
+            st.markdown("<h1>🎓</h1>", unsafe_allow_html=True)
+            
+        st.markdown("<h1 style='font-size: 2.5rem; margin-bottom:0;'>EduPlan Pro</h1>", unsafe_allow_html=True)
+        st.markdown("<p style='opacity:0.8;'>Замын-Үүд 2-р сургууль</p>", unsafe_allow_html=True)
+        
+        u_role = st.radio("Таны үүрэг:", ["Багш", "Сурагч"], horizontal=True)
         u_name = st.text_input("👤 Хэрэглэгчийн нэр")
         
         u_class = ""
@@ -106,20 +113,17 @@ if not st.session_state.auth:
                 if u_role == "Сурагч" and not u_class:
                     st.error("Ангиа оруулна уу!")
                 else:
-                    st.session_state.auth = True
-                    st.session_state.role = u_role
-                    st.session_state.user = u_name
-                    st.session_state.u_class = u_class
+                    st.session_state.auth, st.session_state.role, st.session_state.user, st.session_state.u_class = True, u_role, u_name, u_class
                     st.rerun()
             else:
                 st.error("Нэвтрэх мэдээлэл буруу байна!")
         st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
-# --- SIDEBAR МЕНЮ ---
+# --- SIDEBAR ---
 with st.sidebar:
     st.markdown(f"## 👤 {st.session_state.user}")
-    st.info(f"📍 {st.session_state.role} " + (f"| 🏫 {st.session_state.u_class}" if st.session_state.u_class else ""))
+    st.caption(f"📍 {st.session_state.role} " + (f"| 🏫 {st.session_state.u_class}" if st.session_state.u_class else ""))
     st.divider()
     
     if st.session_state.role == "Багш":
@@ -131,11 +135,10 @@ with st.sidebar:
         st.session_state.auth = False
         st.rerun()
 
-# --- МОРФОЛОГИ (АГУУЛГА) ---
+# --- МОДУЛИУД ---
 
-# 1. ЭЭЛЖИТ ТӨЛӨВЛӨГӨӨ
 if menu == "💎 Ээлжит төлөвлөгч":
-    st.markdown("<div class='teacher-header'><h1>💎 Ээлжит хичээл төлөвлөлт</h1></div>", unsafe_allow_html=True)
+    st.markdown("<h1>💎 Ээлжит хичээл төлөвлөлт</h1>", unsafe_allow_html=True)
     col1, col2 = st.columns([1, 1.5])
     with col1:
         st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
@@ -145,12 +148,12 @@ if menu == "💎 Ээлжит төлөвлөгч":
         p_tpc = st.text_input("Хичээлийн сэдэв")
         if st.button("🚀 Боловсруулах"):
             if p_file and p_tpc:
-                with st.spinner("AI төлөвлөгөө гаргаж байна..."):
+                with st.spinner("AI ажиллаж байна..."):
                     reader = PyPDF2.PdfReader(p_file)
                     txt = "".join([reader.pages[i].extract_text() for i in range(p_start-1, min(p_end, len(reader.pages)))])
                     res = requests.post("https://api.groq.com/openai/v1/chat/completions", 
                                        headers={"Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}"},
-                                       json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": f"Сэдэв: {p_tpc}. Текст: {txt[:5000]}. Багшийн ээлжит хичээлийн төлөвлөгөөг заасан стандартын дагуу гарга."}]})
+                                       json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": f"Сэдэв: {p_tpc}. Текст: {txt[:5000]}. Төлөвлөгөө гарга."}]})
                     st.session_state.last_plan = res.json()['choices'][0]['message']['content']
         st.markdown("</div>", unsafe_allow_html=True)
     with col2:
@@ -160,9 +163,8 @@ if menu == "💎 Ээлжит төлөвлөгч":
             st.download_button("📥 Word татах", create_word_doc(st.session_state.last_plan, p_tpc), f"{p_tpc}.docx")
             st.markdown("</div>", unsafe_allow_html=True)
 
-# 2. ТЕСТ ҮҮСГЭГЧ
 elif menu == "📝 Тест үүсгэгч":
-    st.markdown("<div class='teacher-header'><h1>📝 Тест боловсруулах</h1></div>", unsafe_allow_html=True)
+    st.markdown("<h1>📝 Тест боловсруулах</h1>", unsafe_allow_html=True)
     col1, col2 = st.columns([1, 1.5])
     with col1:
         st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
@@ -175,7 +177,7 @@ elif menu == "📝 Тест үүсгэгч":
                     txt = "".join([p.extract_text() for p in reader.pages[:3]])
                     res = requests.post("https://api.groq.com/openai/v1/chat/completions", 
                                        headers={"Authorization": f"Bearer {st.secrets['GROQ_API_KEY']}"},
-                                       json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": f"Текст: {txt[:5000]}. Энэ агуулгаар {t_num} тест зохиож, хариуг нь төгсгөлд нь бич."}]})
+                                       json={"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": f"Текст: {txt[:5000]}. {t_num} тест зохиож, хариуг бич."}]})
                     st.session_state.last_test = res.json()['choices'][0]['message']['content']
         st.markdown("</div>", unsafe_allow_html=True)
     with col2:
@@ -185,9 +187,8 @@ elif menu == "📝 Тест үүсгэгч":
             st.download_button("📥 Word татах", create_word_doc(st.session_state.last_test, "Шалгалт"), "test.docx")
             st.markdown("</div>", unsafe_allow_html=True)
 
-# 3. ДААЛГАВАР ӨГӨХ
 elif menu == "📝 Даалгавар өгөх":
-    st.markdown("<div class='teacher-header'><h1>📝 Сурагчдад даалгавар илгээх</h1></div>", unsafe_allow_html=True)
+    st.markdown("<h1>📝 Сурагчдад даалгавар илгээх</h1>", unsafe_allow_html=True)
     with st.form("hw"):
         c_name = st.text_input("Аль ангид?")
         h_title = st.text_input("Гарчиг")
@@ -195,9 +196,8 @@ elif menu == "📝 Даалгавар өгөх":
         if st.form_submit_button("🚀 Нийтлэх"):
             st.success(f"✅ {c_name} ангид даалгавар амжилттай илгээгдлээ.")
 
-# 4. AI ЧАТБОТ
 elif "AI" in menu:
-    st.markdown("<div class='teacher-header'><h1>🤖 AI Туслах</h1></div>", unsafe_allow_html=True)
+    st.markdown("<h1>🤖 AI Туслах</h1>", unsafe_allow_html=True)
     if "msgs" not in st.session_state: st.session_state.msgs = []
     for m in st.session_state.msgs:
         with st.chat_message(m["role"]): st.markdown(m["content"])
@@ -211,17 +211,15 @@ elif "AI" in menu:
         with st.chat_message("assistant"): st.markdown(ans)
         st.session_state.msgs.append({"role": "assistant", "content": ans})
 
-# 5. ПОРТАЛ
 elif menu == "🌍 Портал":
-    st.markdown("<div class='teacher-header'><h1>🌍 Боловсролын Порталууд</h1></div>", unsafe_allow_html=True)
+    st.markdown("<h1>🌍 Боловсролын Порталууд</h1>", unsafe_allow_html=True)
     tabs = st.tabs(["📚 E-Content", "👨‍🏫 Bagsh.edu.mn", "✅ Unelgee", "📊 EEC", "📑 ESIS"])
     with tabs[0]: components.iframe("https://econtent.edu.mn/book", height=800, scrolling=True)
     with tabs[1]: components.iframe("https://bagsh.edu.mn/", height=800, scrolling=True)
     with tabs[2]: components.iframe("https://unelgee.eec.mn/", height=800, scrolling=True)
     with tabs[3]: components.iframe("https://www.eec.mn/", height=800, scrolling=True)
-    with tabs[4]: st.info("ESIS систем iframe дотор ажиллахгүй тул шууд хаягаар хандана уу: esis.edu.mn")
+    with tabs[4]: st.info("ESIS систем хаягаар хандана уу: esis.edu.mn")
 
-# 6. СУРАГЧИЙН ХЭСЭГ
 elif menu == "📚 Миний даалгавар":
-    st.markdown("<div class='teacher-header' style='background: #065f46;'><h1>📚 Миний даалгавар</h1></div>", unsafe_allow_html=True)
+    st.markdown("<h1>📚 Миний даалгавар</h1>", unsafe_allow_html=True)
     st.markdown(f"<div class='glass-card'><h3>🏫 {st.session_state.u_class} ангийн даалгаврууд</h3><p>Одоогоор ирсэн шинэ даалгавар байхгүй байна.</p></div>", unsafe_allow_html=True)
