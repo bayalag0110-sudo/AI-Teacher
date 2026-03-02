@@ -182,10 +182,11 @@ elif menu == "🤖 AI Чатбот":
         with st.chat_message("assistant"): st.markdown(ans)
         st.session_state.messages.append({"role": "assistant", "content": ans})
 
-# --- 5. 🌍 ПОРТАЛ ---
+# --- 5. 🌍 БОЛОВСРОЛ ---
 elif menu == "🌍 Портал":
-    st.title("🌍 Боловсролын Порталууд")
-    sites = {"🗺️ EduMap": "https://edumap.mn/", "🎥 Medle": "https://medle.mn/", "🎮 Eduten": "https://www.eduten.com/", "🇬🇧 Pearson": "https://englishconnect.pearson.com/", "📝 Unelgee": "https://unelgee.eec.mn/auth/login/", "📊 EEC": "https://www.eec.mn/"}
+    st.title("🌍 Боловсролын Сайтууд")
+    sites = {"🗺️ EduMap": "https://edumap.mn/", "🎥 Medle": "https://medle.mn/", "🎮 Eduten": "https://www.eduten.com/", "🇬🇧 Pearson": "https://englishconnect.pearson.com/", "📝 Unelgee": "https://unelgee.eec.mn/auth/login/", "📊 EEC": "https://www.eec.mn/", "https://econtent.edu.mn/"}
     t = st.tabs(list(sites.keys()))
     for i, (name, url) in enumerate(sites.items()):
         with t[i]: components.iframe(url, height=800)
+
