@@ -182,8 +182,8 @@ elif menu == "🤖 AI Чатбот":
         with st.chat_message("assistant"): st.markdown(ans)
         st.session_state.messages.append({"role": "assistant", "content": ans})
 
-# --- 5. 🌍 Боловсррл ---
-elif menu == "🌍 Боловсрол":
+# --- 5. 🌍 ПОРТАЛ ---
+elif menu == "🌍 Портал":
     st.title("🌍 Боловсролын Порталууд")
     sites = {"🗺️ EduMap": "https://edumap.mn/", "🎥 Medle": "https://medle.mn/", "🎮 Eduten": "https://www.eduten.com/", "🇬🇧 Pearson": "https://englishconnect.pearson.com/", "📝 Unelgee": "https://unelgee.eec.mn/auth/login/", "📊 EEC": "https://www.eec.mn/"}
     t = st.tabs(list(sites.keys()))
