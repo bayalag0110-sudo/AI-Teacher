@@ -74,7 +74,7 @@ if not st.session_state.auth:
 # --- SIDEBAR МЕНЮ ---
 with st.sidebar:
     st.markdown("### 🎓 ЦЭС")
-    menu = st.radio("Сонгох:", ["💎 Ээлжит төлөвлөгч", "📝 Тест үүсгэгч", "📝 Даалгавар үүсгэх", "🤖 AI Чатбот", "🌍 Портал"])
+    menu = st.radio("Сонгох:", ["💎 Ээлжит төлөвлөгч", "📝 Тест үүсгэгч", "📝 Даалгавар үүсгэх", "🤖 AI Чатбот", "🌍 Боловсрол"])
     if st.button("🚪 Гарах"): st.session_state.auth = False; st.rerun()
 
 # --- 1. 💎 ЭЭЛЖИТ ТӨЛӨВЛӨГЧ (Боловсролын стандартын дагуу) ---
@@ -189,5 +189,6 @@ elif menu == "🌍 Портал":
     t = st.tabs(list(sites.keys()))
     for i, (name, url) in enumerate(sites.items()):
         with t[i]: components.iframe(url, height=800)
+
 
 
