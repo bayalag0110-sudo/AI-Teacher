@@ -8,7 +8,7 @@ import PyPDF2
 from PIL import Image
 
 # 1. СИСТЕМИЙН ТОХИРГОО
-st.set_page_config(page_title="EduPlan Pro v6.5", layout="wide", page_icon="🎓")
+st.set_page_config(page_title="Education", layout="wide", page_icon="🎓")
 
 # --- CUSTOM CSS ---
 st.markdown("""
@@ -189,6 +189,7 @@ elif menu == "🌍 Портал":
     t = st.tabs(list(sites.keys()))
     for i, (name, url) in enumerate(sites.items()):
         with t[i]: components.iframe(url, height=800)
+
 
 
 
