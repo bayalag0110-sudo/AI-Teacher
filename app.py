@@ -65,7 +65,7 @@ if not st.session_state.auth:
     with col:
         st.markdown('<div class="glass-card" style="text-align:center; margin-top:50px;">', unsafe_allow_html=True)
         try: st.image('450633998_2213051369057631_4561852154062620515_n.jpg', width=180)
-        except: st.title("🎓 Education")
+        except: st.title("🎓 Багшийн туслах")
         u_pwd = st.text_input("🔑 Нууц үг", type="password")
         if st.button("НЭВТРЭХ"):
             if u_pwd == "admin1234": st.session_state.auth = True; st.rerun()
@@ -189,6 +189,7 @@ elif menu == "🌍 Портал":
     t = st.tabs(list(sites.keys()))
     for i, (name, url) in enumerate(sites.items()):
         with t[i]: components.iframe(url, height=800)
+
 
 
 
