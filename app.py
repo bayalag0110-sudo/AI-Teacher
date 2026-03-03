@@ -8,7 +8,7 @@ import PyPDF2
 from PIL import Image
 
 # 1. СИСТЕМИЙН ТОХИРГОО
-st.set_page_config(page_title="Education", layout="wide", page_icon="🎓")
+st.set_page_config(page_title="EduPlan Pro v6.5", layout="wide", page_icon="🎓")
 
 # --- CUSTOM CSS ---
 st.markdown("""
@@ -65,7 +65,7 @@ if not st.session_state.auth:
     with col:
         st.markdown('<div class="glass-card" style="text-align:center; margin-top:50px;">', unsafe_allow_html=True)
         try: st.image('450633998_2213051369057631_4561852154062620515_n.jpg', width=180)
-        except: st.title("🎓 Багшийн туслах")
+        except: st.title("🎓 EduPlan Pro")
         u_pwd = st.text_input("🔑 Нууц үг", type="password")
         if st.button("НЭВТРЭХ"):
             if u_pwd == "admin1234": st.session_state.auth = True; st.rerun()
@@ -74,7 +74,7 @@ if not st.session_state.auth:
 # --- SIDEBAR МЕНЮ ---
 with st.sidebar:
     st.markdown("### 🎓 ЦЭС")
-    menu = st.radio("Сонгох:", ["💎 Ээлжит төлөвлөгч", "📝 Тест үүсгэгч", "📝 Даалгавар үүсгэх", "🤖 AI Чатбот", "🌍 Боловсрол"])
+    menu = st.radio("Сонгох:", ["💎 Ээлжит төлөвлөгч", "📝 Тест үүсгэгч", "📝 Даалгавар үүсгэх", "🤖 AI Чатбот", "🌍 Портал"])
     if st.button("🚪 Гарах"): st.session_state.auth = False; st.rerun()
 
 # --- 1. 💎 ЭЭЛЖИТ ТӨЛӨВЛӨГЧ (Боловсролын стандартын дагуу) ---
@@ -182,16 +182,10 @@ elif menu == "🤖 AI Чатбот":
         with st.chat_message("assistant"): st.markdown(ans)
         st.session_state.messages.append({"role": "assistant", "content": ans})
 
-# --- 5. 🌍 БОЛОВСРОЛ ---
-elif menu == "🌍 Портал":
-    st.title("🌍 Боловсролын Сайтууд")
-    sites = {"🗺️ EduMap": "https://edumap.mn/", "🎥 Medle": "https://medle.mn/", "🎮 Eduten": "https://www.eduten.com/", "🇬🇧 Pearson": "https://englishconnect.pearson.com/", "📝 Unelgee": "https://unelgee.eec.mn/auth/login/", "📊 EEC": "https://www.eec.mn/", "Econtent": "https://econtent.edu.mn/"}
+# --- 5. 🌍 Боловсррл ---
+elif menu == "🌍 Боловсрол":
+    st.title("🌍 Боловсролын Порталууд")
+    sites = {"🗺️ EduMap": "https://edumap.mn/", "🎥 Medle": "https://medle.mn/", "🎮 Eduten": "https://www.eduten.com/", "🇬🇧 Pearson": "https://englishconnect.pearson.com/", "📝 Unelgee": "https://unelgee.eec.mn/auth/login/", "📊 EEC": "https://www.eec.mn/"}
     t = st.tabs(list(sites.keys()))
     for i, (name, url) in enumerate(sites.items()):
         with t[i]: components.iframe(url, height=800)
-
-
-
-
-
-
